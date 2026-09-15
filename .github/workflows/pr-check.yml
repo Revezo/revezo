@@ -22,7 +22,7 @@ jobs:
               run: npm install
 
             - name: Run ESLint
-              run: npx expo lint --no-fix
+              run: npx expo lint -- --no-fix
 
             - name: Check TypeScript compilation
               run: npx tsc --noEmit
