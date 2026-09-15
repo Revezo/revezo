@@ -1,25 +1,25 @@
 name: PR Check
 
 on:
-  pull_request:
-    branches: ["main"]
+    pull_request:
+        branches: [ "main" ]
 
 jobs:
-  build:
-    name: Type Check
-    runs-on: ubuntu-latest
+    build:
+        name: Type Check
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout do código
+              uses: actions/checkout@v4
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
+            - name: Configurar Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: '22'
 
-      - name: Instalar dependências
-        run: npm install
+            - name: Instalar dependências
+              run: npm install
 
-      - name: Checar compilação do TypeScript
-        run: npx tsc --noEmit
+            - name: Checar compilação do TypeScript
+              run: npx tsc --noEmit
