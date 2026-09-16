@@ -1,99 +1,115 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import { auth, db } from '../firebaseConfig';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { Redirect } from 'expo-router';
 
 export default function HomeScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tarefas, setTarefas] = useState<any[]>([]);
+  const [nomeTarefa, setNomeTarefa] = useState('');
+  const [adicionando, setAdicionando] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (user) carregarTarefas();
+  }, [user]);
+
+  const carregarTarefas = async () => {
+    if (!user) return;
+    const q = query(collection(db, 'tarefas'), where('userId', '==', user.uid));
+    const snapshot = await getDocs(q);
+    const lista = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    setTarefas(lista);
+  };
+
+  const adicionarTarefa = async () => {
+    if (!nomeTarefa.trim()) return;
+    try {
+      await addDoc(collection(db, 'tarefas'), {
+        nome: nomeTarefa,
+        userId: user?.uid,
+        criadaEm: new Date(),
+        status: 'pendente',
+      });
+      setNomeTarefa('');
+      setAdicionando(false);
+      carregarTarefas();
+    } catch (error: any) {
+      Alert.alert('Erro', error.message);
+    }
+  };
+
+  const excluirTarefa = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'tarefas', id));
+      carregarTarefas();
+    } catch (error: any) {
+      Alert.alert('Erro', error.message);
+    }
+  };
+
+  if (loading) return null;
+  if (!user) return <Redirect href="/login" />;
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.titulo}>Minhas Tarefas</Text>
+        <Button title="Sair" onPress={() => signOut(auth)} color="red" />
+      </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      <FlatList
+        data={tarefas}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={<Text style={styles.vazio}>Nenhuma tarefa ainda.</Text>}
+        renderItem={({ item }) => (
+          <View style={styles.tarefaItem}>
+            <Text style={styles.tarefaNome}>{item.nome}</Text>
+            <TouchableOpacity onPress={() => excluirTarefa(item.id)}>
+              <Text style={styles.excluir}>Excluir</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+      {adicionando ? (
+        <View style={styles.form}>
+          <TextInput
+            placeholder="Nome da tarefa"
+            value={nomeTarefa}
+            onChangeText={setNomeTarefa}
+            style={styles.input}
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+          <Button title="Salvar" onPress={adicionarTarefa} />
+          <View style={{ marginVertical: 4 }} />
+          <Button title="Cancelar" onPress={() => setAdicionando(false)} color="gray" />
+        </View>
+      ) : (
+        <Button title="+ Nova Tarefa" onPress={() => setAdicionando(true)} />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  container: { flex: 1, padding: 24, backgroundColor: '#f5f5f5' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  titulo: { fontSize: 24, fontWeight: 'bold' },
+  tarefaItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 8, marginBottom: 8 },
+  tarefaNome: { fontSize: 16, flex: 1 },
+  excluir: { color: 'red', fontWeight: 'bold', marginLeft: 12 },
+  vazio: { textAlign: 'center', color: '#999', marginTop: 32 },
+  form: { backgroundColor: '#fff', padding: 16, borderRadius: 8, marginTop: 16 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, marginBottom: 12, borderRadius: 8 },
 });
-
