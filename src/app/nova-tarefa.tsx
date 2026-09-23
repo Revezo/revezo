@@ -57,15 +57,30 @@ export default function NovaTarefaScreen() {
   const [janelaHoras, setJanelaHoras] = useState('24');
 
   useEffect(() => {
-    const usuario = auth.currentUser;
-    if (!usuario) {
-      setCarregando(false);
-      return;
+    let montado = true;
+
+    async function verificarAcesso() {
+      const usuario = auth.currentUser;
+      if (!usuario) {
+        if (montado) setCarregando(false);
+        return;
+      }
+      
+      try {
+        const perfilCarregado = await carregarPerfil(usuario);
+        if (montado) setPerfil(perfilCarregado);
+      } catch {
+        if (montado) setPerfil(null);
+      } finally {
+        if (montado) setCarregando(false);
+      }
     }
-    carregarPerfil(usuario)
-      .then(setPerfil)
-      .catch(() => setPerfil(null))
-      .finally(() => setCarregando(false));
+
+    verificarAcesso();
+
+    return () => {
+      montado = false;
+    };
   }, []);
 
   const dados = useMemo<DadosNovaTarefa>(() => {
