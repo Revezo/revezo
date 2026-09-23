@@ -1,3 +1,5 @@
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,8 +12,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect, router, useFocusEffect } from 'expo-router';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import {
   PerfilUsuario,

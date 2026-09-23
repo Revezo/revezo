@@ -1,3 +1,4 @@
+import { Redirect, router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect, router } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { PerfilUsuario, carregarPerfil, ehAdministrador } from '../services/moradia';
 import { cadastrarTarefa } from '../services/tarefas';
