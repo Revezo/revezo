@@ -1,3 +1,6 @@
+import { colors } from '@/constants/theme';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,8 +13,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect, router, useFocusEffect } from 'expo-router';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import {
   PerfilUsuario,
@@ -247,66 +248,67 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f4', padding: 20 },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f4' },
+  container: { flex: 1, backgroundColor: colors.background, padding: 20 },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   cabecalho: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  titulo: { fontSize: 22, fontWeight: '700', color: '#1d2b24' },
-  subtitulo: { fontSize: 13, color: '#6b7a72', marginTop: 2 },
+  titulo: { fontSize: 22, fontWeight: '700', color: colors.textDark },
+  subtitulo: { fontSize: 13, color: colors.textGray, marginTop: 2 },
   lista: { paddingBottom: 16 },
-  tarefa: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 10 },
+  tarefa: { backgroundColor: colors.inputBackground, borderRadius: 12, padding: 16, marginBottom: 10 },
   tarefaTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tarefaNome: { fontSize: 16, fontWeight: '600', color: '#1d2b24', flex: 1, paddingRight: 12 },
+  tarefaNome: { fontSize: 16, fontWeight: '600', color: colors.textDark, flex: 1, paddingRight: 12 },
   peso: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#e8f1ec',
+    backgroundColor: colors.stroke,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pesoTexto: { color: '#2f6f4e', fontWeight: '700', fontSize: 13 },
-  tarefaDetalhe: { fontSize: 13, color: '#6b7a72', marginTop: 6 },
-  tarefaSorteio: { fontSize: 13, color: '#2f6f4e', marginTop: 8, fontWeight: '600' },
-  excluir: { color: '#b3261e', fontSize: 13, marginTop: 12, fontWeight: '600' },
+  pesoTexto: { color: colors.textDark, fontWeight: '700', fontSize: 13 },
+  tarefaDetalhe: { fontSize: 13, color: colors.textGray, marginTop: 6 },
+  tarefaSorteio: { fontSize: 13, color: colors.primary, marginTop: 8, fontWeight: '600' },
+  excluir: { color: '#EF4444', fontSize: 13, marginTop: 12, fontWeight: '600' },
   confirmacao: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: colors.stroke,
   },
-  confirmacaoTexto: { fontSize: 13, color: '#3d4b44', marginBottom: 8 },
+  confirmacaoTexto: { fontSize: 13, color: colors.textDark, marginBottom: 8 },
   confirmacaoBotoes: { flexDirection: 'row', alignItems: 'center' },
   confirmacaoBotao: { marginRight: 20 },
-  manter: { color: '#6b7a72', fontSize: 13, fontWeight: '600' },
-  confirmarExclusaoTexto: { color: '#b3261e', fontSize: 13, fontWeight: '600' },
+  manter: { color: colors.textGray, fontSize: 13, fontWeight: '600' },
+  confirmarExclusaoTexto: { color: '#EF4444', fontSize: 13, fontWeight: '600' },
   faixaErro: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fbe9e7',
+    backgroundColor: '#FEE2E2',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
   },
-  faixaErroTexto: { color: '#b3261e', fontSize: 13, flex: 1, paddingRight: 12 },
-  faixaErroFechar: { color: '#b3261e', fontSize: 13, fontWeight: '700' },
-  vazio: { textAlign: 'center', color: '#8a968f', marginTop: 40, lineHeight: 20 },
-  cartao: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  cartaoTitulo: { fontSize: 18, fontWeight: '700', color: '#1d2b24' },
-  cartaoTexto: { fontSize: 14, color: '#6b7a72', marginTop: 8, marginBottom: 16, lineHeight: 20 },
+  faixaErroTexto: { color: '#EF4444', fontSize: 13, flex: 1, paddingRight: 12 },
+  faixaErroFechar: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
+  vazio: { textAlign: 'center', color: colors.textGray, marginTop: 40, lineHeight: 20 },
+  cartao: { backgroundColor: colors.inputBackground, borderRadius: 12, padding: 20 },
+  cartaoTitulo: { fontSize: 18, fontWeight: '700', color: colors.textDark },
+  cartaoTexto: { fontSize: 14, color: colors.textGray, marginTop: 8, marginBottom: 16, lineHeight: 20 },
   input: {
     borderWidth: 1,
-    borderColor: '#d8ded9',
+    borderColor: colors.stroke,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
     marginBottom: 16,
+    backgroundColor: colors.inputBackground,
   },
-  botao: { backgroundColor: '#2f6f4e', borderRadius: 10, paddingVertical: 15, alignItems: 'center' },
-  botaoDesativado: { backgroundColor: '#a9bfb3' },
-  botaoTexto: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  botao: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 15, alignItems: 'center' },
+  botaoDesativado: { backgroundColor: colors.textGray },
+  botaoTexto: { color: colors.textWhite, fontSize: 16, fontWeight: '600' },
   sair: { marginTop: 16, alignItems: 'center' },
-  sairTexto: { color: '#b3261e', fontSize: 15 },
-  rodapeAviso: { textAlign: 'center', color: '#8a968f', fontSize: 13, paddingVertical: 12 },
+  sairTexto: { color: '#EF4444', fontSize: 15 },
+  rodapeAviso: { textAlign: 'center', color: colors.textGray, fontSize: 13, paddingVertical: 12 },
 });

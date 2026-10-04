@@ -1,3 +1,5 @@
+import { colors } from '@/constants/theme';
+import { Redirect, router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,7 +15,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Redirect, router } from 'expo-router';
 import { auth } from '../firebaseConfig';
 import { PerfilUsuario, carregarPerfil, ehAdministrador } from '../services/moradia';
 import { cadastrarTarefa } from '../services/tarefas';
@@ -57,15 +58,30 @@ export default function NovaTarefaScreen() {
   const [janelaHoras, setJanelaHoras] = useState('24');
 
   useEffect(() => {
-    const usuario = auth.currentUser;
-    if (!usuario) {
-      setCarregando(false);
-      return;
+    let montado = true;
+
+    async function verificarAcesso() {
+      const usuario = auth.currentUser;
+      if (!usuario) {
+        if (montado) setCarregando(false);
+        return;
+      }
+      
+      try {
+        const perfilCarregado = await carregarPerfil(usuario);
+        if (montado) setPerfil(perfilCarregado);
+      } catch {
+        if (montado) setPerfil(null);
+      } finally {
+        if (montado) setCarregando(false);
+      }
     }
-    carregarPerfil(usuario)
-      .then(setPerfil)
-      .catch(() => setPerfil(null))
-      .finally(() => setCarregando(false));
+
+    verificarAcesso();
+
+    return () => {
+      montado = false;
+    };
   }, []);
 
   const dados = useMemo<DadosNovaTarefa>(() => {
@@ -335,8 +351,8 @@ export default function NovaTarefaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f4' },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f4' },
+  container: { flex: 1, backgroundColor: colors.background },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   cabecalho: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,29 +360,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  voltar: { color: '#2f6f4e', fontSize: 15, width: 64 },
-  titulo: { fontSize: 18, fontWeight: '700', color: '#1d2b24' },
+  voltar: { color: colors.primary, fontSize: 15, width: 64 },
+  titulo: { fontSize: 18, fontWeight: '700', color: colors.textDark },
   conteudo: { padding: 20, paddingBottom: 48 },
   bloco: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.inputBackground,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
   subBloco: { marginTop: 12 },
-  rotulo: { fontSize: 15, fontWeight: '600', color: '#1d2b24', marginBottom: 8 },
-  ajuda: { fontSize: 13, color: '#6b7a72', marginTop: 8 },
+  rotulo: { fontSize: 15, fontWeight: '600', color: colors.textDark, marginBottom: 8 },
+  ajuda: { fontSize: 13, color: colors.textGray, marginTop: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#d8ded9',
+    borderColor: colors.stroke,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    backgroundColor: '#fff',
+    backgroundColor: colors.inputBackground,
   },
   inputCurto: { width: 90 },
-  // marginRight/marginTop em vez de "gap" para funcionar em versões antigas do RN.
   linhaChips: { flexDirection: 'row', flexWrap: 'wrap', marginTop: -8 },
   chip: {
     marginRight: 8,
@@ -375,8 +390,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#d8ded9',
-    backgroundColor: '#fff',
+    borderColor: colors.stroke,
+    backgroundColor: colors.inputBackground,
   },
   chipDia: {
     marginRight: 8,
@@ -386,8 +401,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#d8ded9',
-    backgroundColor: '#fff',
+    borderColor: colors.stroke,
+    backgroundColor: colors.inputBackground,
   },
   chipPeso: {
     marginRight: 8,
@@ -397,44 +412,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#d8ded9',
-    backgroundColor: '#fff',
+    borderColor: colors.stroke,
+    backgroundColor: colors.inputBackground,
   },
-  chipAtivo: { backgroundColor: '#2f6f4e', borderColor: '#2f6f4e' },
-  chipTexto: { fontSize: 14, color: '#3d4b44' },
-  chipTextoAtivo: { color: '#fff', fontWeight: '600' },
+  chipAtivo: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipTexto: { fontSize: 14, color: colors.textDark },
+  chipTextoAtivo: { color: colors.textWhite, fontWeight: '600' },
   linhaSwitch: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   linhaSwitchTexto: { flex: 1, paddingRight: 12 },
   resumo: {
-    backgroundColor: '#e8f1ec',
+    backgroundColor: colors.stroke,
     borderRadius: 12,
     padding: 16,
     marginTop: 4,
     marginBottom: 16,
   },
-  resumoTitulo: { fontSize: 14, fontWeight: '700', color: '#1d2b24', marginBottom: 8 },
-  resumoLinha: { fontSize: 14, color: '#3d4b44', marginBottom: 4 },
-  resumoDestaque: { fontSize: 14, fontWeight: '600', color: '#2f6f4e', marginTop: 6 },
+  resumoTitulo: { fontSize: 14, fontWeight: '700', color: colors.textDark, marginBottom: 8 },
+  resumoLinha: { fontSize: 14, color: colors.textDark, marginBottom: 4 },
+  resumoDestaque: { fontSize: 14, fontWeight: '600', color: colors.primary, marginTop: 6 },
   erros: { marginBottom: 16 },
-  erroTexto: { color: '#b3261e', fontSize: 13, marginBottom: 4 },
+  erroTexto: { color: '#EF4444', fontSize: 13, marginBottom: 4 },
   botao: {
-    backgroundColor: '#2f6f4e',
+    backgroundColor: colors.primary,
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',
   },
-  botaoDesativado: { backgroundColor: '#a9bfb3' },
-  botaoTexto: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  botaoDesativado: { backgroundColor: colors.textGray },
+  botaoTexto: { color: colors.textWhite, fontSize: 16, fontWeight: '600' },
   botaoSecundario: {
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#2f6f4e',
+    borderColor: colors.primary,
     borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
   },
-  botaoSecundarioTexto: { color: '#2f6f4e', fontSize: 15, fontWeight: '600' },
-  aviso: { margin: 20, backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  avisoTitulo: { fontSize: 17, fontWeight: '700', color: '#1d2b24', marginBottom: 8 },
-  avisoTexto: { fontSize: 14, color: '#6b7a72', lineHeight: 20 },
+  botaoSecundarioTexto: { color: colors.primary, fontSize: 15, fontWeight: '600' },
+  aviso: { margin: 20, backgroundColor: colors.inputBackground, borderRadius: 12, padding: 20 },
+  avisoTitulo: { fontSize: 17, fontWeight: '700', color: colors.textDark, marginBottom: 8 },
+  avisoTexto: { fontSize: 14, color: colors.textGray, lineHeight: 20 },
 });
