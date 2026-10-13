@@ -27,7 +27,7 @@ export default function CadastroScreen() {
     setCarregando(true);
     try {
       await createUserWithEmailAndPassword(auth, email.trim(), senha);
-      router.replace('/');
+      router.replace('/escolher-fluxo');
     } catch (erro: any) {
       Alert.alert('Não foi possível criar a conta', erro.message);
     } finally {
