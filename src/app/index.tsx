@@ -8,17 +8,15 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
 import {
   PerfilUsuario,
   carregarPerfil,
-  criarMoradiaComoAdmin,
-  ehAdministrador,
+  ehAdministrador
 } from '../services/moradia';
 import { excluirTarefa, listarTarefas } from '../services/tarefas';
 import {
@@ -36,8 +34,6 @@ export default function HomeScreen() {
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
-  const [nomeMoradia, setNomeMoradia] = useState('');
-  const [criandoMoradia, setCriandoMoradia] = useState(false);
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
@@ -76,19 +72,6 @@ export default function HomeScreen() {
     }, [atualizarLista]),
   );
 
-  const criarMoradia = async () => {
-    if (!usuario) return;
-    setCriandoMoradia(true);
-    try {
-      setPerfil(await criarMoradiaComoAdmin(usuario, nomeMoradia));
-      setNomeMoradia('');
-    } catch (erro: any) {
-      Alert.alert('Não foi possível criar a moradia', erro.message);
-    } finally {
-      setCriandoMoradia(false);
-    }
-  };
-
   const excluir = async (tarefa: Tarefa) => {
     setErroExclusao(null);
     setExcluindoId(tarefa.id);
@@ -115,32 +98,38 @@ export default function HomeScreen() {
 
   if (!perfil) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.cartao}>
-          <Text style={styles.cartaoTitulo}>Crie sua moradia</Text>
-          <Text style={styles.cartaoTexto}>
-            As tarefas pertencem a uma moradia. Quem cria a moradia vira administrador e pode
-            cadastrar tarefas.
+      <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+        <View style={styles.bemVindoContainer}>
+          <Text style={{ fontSize: 60 }}>🏡</Text> 
+          <Text style={styles.bemVindoTitulo}>Bem-vindo!</Text>
+          <Text style={styles.bemVindoSub}>
+            Como deseja começar a organizar as tarefas do seu lar?
           </Text>
-          <TextInput
-            placeholder="Nome da moradia"
-            value={nomeMoradia}
-            onChangeText={setNomeMoradia}
-            style={styles.input}
-          />
-          <TouchableOpacity
-            style={[styles.botao, criandoMoradia && styles.botaoDesativado]}
-            onPress={criarMoradia}
-            disabled={criandoMoradia}
-          >
-            <Text style={styles.botaoTexto}>
-              {criandoMoradia ? 'Criando...' : 'Criar moradia'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sair} onPress={() => signOut(auth)}>
-            <Text style={styles.sairTexto}>Sair</Text>
-          </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.botaoFluxo}
+          onPress={() => router.push('/criar-moradia')}
+        >
+          <Text style={styles.botaoFluxoTitulo}>🏠 Criar uma Moradia</Text>
+          <Text style={styles.botaoFluxoSubtexto}>
+            Configure seu lar do zero e convide outros moradores.
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.botaoFluxo}
+          // onPress={() => router.push('/entrar-moradia')} // Farei essa tela depois
+        >
+          <Text style={styles.botaoFluxoTitulo}>🚪 Entrar com Código</Text>
+          <Text style={styles.botaoFluxoSubtexto}>
+            Já tem um código de convite? Junte-se à sua casa.
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.sair} onPress={() => signOut(auth)}>
+          <Text style={styles.sairTexto}>Sair da conta</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -292,23 +281,46 @@ const styles = StyleSheet.create({
   faixaErroTexto: { color: '#EF4444', fontSize: 13, flex: 1, paddingRight: 12 },
   faixaErroFechar: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
   vazio: { textAlign: 'center', color: colors.textGray, marginTop: 40, lineHeight: 20 },
-  cartao: { backgroundColor: colors.inputBackground, borderRadius: 12, padding: 20 },
-  cartaoTitulo: { fontSize: 18, fontWeight: '700', color: colors.textDark },
-  cartaoTexto: { fontSize: 14, color: colors.textGray, marginTop: 8, marginBottom: 16, lineHeight: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.stroke,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    marginBottom: 16,
-    backgroundColor: colors.inputBackground,
-  },
   botao: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 15, alignItems: 'center' },
-  botaoDesativado: { backgroundColor: colors.textGray },
   botaoTexto: { color: colors.textWhite, fontSize: 16, fontWeight: '600' },
   sair: { marginTop: 16, alignItems: 'center' },
   sairTexto: { color: '#EF4444', fontSize: 15 },
   rodapeAviso: { textAlign: 'center', color: colors.textGray, fontSize: 13, paddingVertical: 12 },
+  bemVindoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  bemVindoTitulo: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textDark,
+    marginTop: 16,
+  },
+  bemVindoSub: {
+    fontSize: 14,
+    color: colors.textGray,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  botaoFluxo: {
+    backgroundColor: colors.inputBackground,
+    borderWidth: 1,
+    borderColor: colors.stroke,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  botaoFluxoTitulo: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textDark,
+    marginBottom: 4,
+  },
+  botaoFluxoSubtexto: {
+    fontSize: 13,
+    color: colors.textGray,
+    lineHeight: 18,
+  },
 });

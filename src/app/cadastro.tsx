@@ -77,7 +77,10 @@ export default function CadastroScreen() {
             {termsAccepted && <Feather name="check" size={14} color={colors.textWhite} />}
           </TouchableOpacity>
           <Text style={styles.termsText}>
-            Estou de acordo com os <Text style={styles.linkText}>Termos de Uso</Text> e <Text style={styles.linkText}>Políticas de Privacidade</Text>.
+            Estou de acordo com os 
+            <Text style={styles.linkText}>Termos de Uso</Text> 
+            e 
+            <Text style={styles.linkText}>Políticas de Privacidade</Text>.
           </Text>
         </View>
 
@@ -106,7 +109,8 @@ const styles = StyleSheet.create({
   termsContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 32, marginTop: 8 },
   checkbox: {
     width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: colors.stroke,
-    backgroundColor: colors.inputBackground, marginRight: 12, marginTop: 2, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.inputBackground, marginRight: 12, marginTop: 2, 
+    justifyContent: 'center', alignItems: 'center',
   },
   checkboxActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   termsText: { ...typography.secondary, color: colors.textGray, flex: 1, lineHeight: 20 },
