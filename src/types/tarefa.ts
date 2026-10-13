@@ -131,7 +131,8 @@ export function descreverJanela(horas: number | null): string {
 
 export function formatarDataHora(data: Date): string {
   const p = (valor: number) => String(valor).padStart(2, '0');
-  return `${p(data.getDate())}/${p(data.getMonth() + 1)}/${data.getFullYear()} às ${p(data.getHours())}:${p(data.getMinutes())}`;
+  return `${p(data.getDate())}/${p(data.getMonth() + 1)}/${data.getFullYear()} às 
+  ${p(data.getHours())}:${p(data.getMinutes())}`;
 }
 
 /** Retorna a lista de erros dos dados de entrada. Lista vazia = dados válidos. */

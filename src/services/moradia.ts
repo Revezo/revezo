@@ -1,5 +1,5 @@
 import { User } from 'firebase/auth';
-import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 export type Papel = 'admin' | 'morador';
@@ -44,26 +44,67 @@ export async function carregarPerfil(usuario: User): Promise<PerfilUsuario | nul
   };
 }
 
+function gerarStringAleatoria(tamanho: number) {
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let resultado = '';
+  for (let i = 0; i < tamanho; i++) {
+    resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+  }
+  return resultado;
+}
+
+async function gerarCodigoConviteUnico(): Promise<string> {
+  let codigoUnico = false;
+  let codigo = '';
+
+  while (!codigoUnico) {
+    codigo = `MOR-${gerarStringAleatoria(4)}`;
+    
+    const moradiasRef = collection(db, 'moradias');
+    const q = query(moradiasRef, where('codigoConvite', '==', codigo));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      codigoUnico = true; 
+    }
+  }
+
+  return codigo;
+}
+
 /** Cria a moradia e torna quem criou o administrador dela. */
-export async function criarMoradiaComoAdmin(usuario: User, nomeMoradia: string): Promise<PerfilUsuario> {
+export async function criarMoradiaComoAdmin(
+    usuario: User, 
+    nomeMoradia: string, 
+    endereco: string = '',
+    apelido: string = ''
+  ): Promise<{perfil: PerfilUsuario; codigoConvite: string}> {
+
   const nome = nomeMoradia.trim();
   if (nome.length < 3) {
     throw new Error('O nome da moradia precisa de pelo menos 3 caracteres.');
   }
 
+  const codigoConvite = await gerarCodigoConviteUnico();
+
   const moradiaRef = await addDoc(collection(db, 'moradias'), {
     nome,
+    endereco: endereco.trim(),
+    codigoConvite,
     criadaPor: usuario.uid,
     criadaEm: serverTimestamp(),
   });
 
+  const nomeUsuario = apelido.trim() || (usuario.email?.split('@')[0] ?? 'Morador');
+
   await setDoc(doc(db, 'moradias', moradiaRef.id, 'membros', usuario.uid), {
     papel: 'admin',
+    apelido: nomeUsuario,
     email: usuario.email ?? null,
     entrouEm: serverTimestamp(),
   });
 
-  const nomeUsuario = usuario.email?.split('@')[0] ?? 'Morador';
+  // const nomeUsuario = usuario.email?.split('@')[0] ?? 'Morador';
 
   await setDoc(
     doc(db, 'usuarios', usuario.uid),
@@ -77,7 +118,7 @@ export async function criarMoradiaComoAdmin(usuario: User, nomeMoradia: string):
     { merge: true },
   );
 
-  return {
+  const perfil: PerfilUsuario = {
     uid: usuario.uid,
     email: usuario.email,
     nome: nomeUsuario,
@@ -85,4 +126,6 @@ export async function criarMoradiaComoAdmin(usuario: User, nomeMoradia: string):
     moradiaNome: nome,
     papel: 'admin',
   };
+
+  return { perfil, codigoConvite };
 }

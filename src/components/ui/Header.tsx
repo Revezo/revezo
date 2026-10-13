@@ -23,7 +23,8 @@ export function Header({ title, showBack = true }: { title: string; showBack?: b
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, marginTop: 16 },
+  container: { flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 32, marginTop: 16 },
   backButton: {
     width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.stroke,
     backgroundColor: colors.inputBackground, justifyContent: 'center', alignItems: 'center',
