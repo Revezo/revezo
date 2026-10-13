@@ -93,6 +93,7 @@ export async function criarMoradiaComoAdmin(
     codigoConvite,
     criadaPor: usuario.uid,
     criadaEm: serverTimestamp(),
+    membrosIds: [usuario.uid],
   });
 
   const nomeUsuario = apelido.trim() || (usuario.email?.split('@')[0] ?? 'Morador');
@@ -128,4 +129,41 @@ export async function criarMoradiaComoAdmin(
   };
 
   return { perfil, codigoConvite };
+}
+
+export interface MoradiaResumo {
+  id: string;
+  nome: string;
+  endereco: string;
+  papel: Papel;
+  totalMoradores: number;
+}
+
+export async function buscarMinhasMoradias(uid: string) {
+  const q = query(collection(db, 'moradias'), where('membrosIds', 'array-contains', uid));
+  const snapshot = await getDocs(q);
+
+  const administra: MoradiaResumo[] = [];
+  const participa: MoradiaResumo[] = [];
+
+  snapshot.forEach((docSnap) => {
+    const dados = docSnap.data();
+    const papel = dados.criadaPor === uid ? 'admin' : 'morador';
+    
+    const resumo: MoradiaResumo = {
+      id: docSnap.id,
+      nome: dados.nome,
+      endereco: dados.endereco || '',
+      papel: papel,
+      totalMoradores: dados.membrosIds?.length || 1, 
+    };
+
+    if (papel === 'admin') {
+      administra.push(resumo);
+    } else {
+      participa.push(resumo);
+    }
+  });
+
+  return { administra, participa };
 }
