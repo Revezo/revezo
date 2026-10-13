@@ -18,7 +18,7 @@ export default function LoginScreen() {
     setCarregando(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), senha);
-      router.replace('/');
+      router.replace('/escolher-fluxo');
     } catch (erro: any) {
       Alert.alert('Não foi possível entrar', erro.message);
     } finally {
