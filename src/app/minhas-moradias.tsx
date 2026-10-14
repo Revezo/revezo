@@ -6,13 +6,28 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { Header } from '@/components/ui/Header';
 import { colors } from '@/constants/theme';
 import { auth } from '@/firebaseConfig';
-import { buscarMinhasMoradias, MoradiaResumo } from '@/services/moradia';
+import { alterarMoradiaAtiva, buscarMinhasMoradias, MoradiaResumo } from '@/services/moradia';
 
 export default function MinhasMoradiasScreen() {
   const router = useRouter();
   const [carregando, setCarregando] = useState(true);
   const [adminMoradias, setAdminMoradias] = useState<MoradiaResumo[]>([]);
   const [participaMoradias, setParticipaMoradias] = useState<MoradiaResumo[]>([]);
+  const [entrandoId, setEntrandoId] = useState<string | null>(null);
+
+  async function handleEntrarMoradia(moradiaId: string) {
+    if (!auth.currentUser) return;
+    
+    setEntrandoId(moradiaId);
+    try {
+      await alterarMoradiaAtiva(auth.currentUser.uid, moradiaId);
+      
+      router.push('/');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível acessar a moradia.');
+      setEntrandoId(null);
+    }
+  }
 
   useEffect(() => {
     async function carregar() {
@@ -33,7 +48,12 @@ export default function MinhasMoradiasScreen() {
   const totalMoradias = adminMoradias.length + participaMoradias.length;
 
   const renderCard = (moradia: MoradiaResumo, isAdmin: boolean) => (
-    <TouchableOpacity key={moradia.id} style={styles.card}>
+    <TouchableOpacity 
+      key={moradia.id} 
+      style={styles.card}
+      onPress={() => handleEntrarMoradia(moradia.id)}
+      disabled={entrandoId !== null}
+    >
       <View style={styles.cardHeader}>
         <View style={[styles.iconBg, isAdmin ? styles.iconBgAdmin : styles.iconBgMorador]}>
           <Feather name="home" size={20} color={isAdmin ? '#3B82F6' : '#10B981'} />
@@ -44,7 +64,13 @@ export default function MinhasMoradiasScreen() {
             {moradia.endereco || 'Endereço não informado'}
           </Text>
         </View>
-        <Feather name="chevron-right" size={20} color={colors.textGray} />
+        
+        {entrandoId === moradia.id ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : (
+          <Feather name="chevron-right" size={20} color={colors.textGray} />
+        )}
+
       </View>
 
       <View style={styles.cardFooter}>
@@ -125,7 +151,7 @@ const styles = StyleSheet.create({
   totalText: { color: '#3B82F6', fontSize: 13, fontWeight: '600', marginBottom: 24 },
   
   section: { marginBottom: 32 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.textDark, marginBottom: 4 },
   sectionSubtitle: { fontSize: 13, color: colors.textGray },
   sectionCount: { fontSize: 13, color: colors.textGray },

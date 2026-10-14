@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Button } from '../components/ui/Button';
 import { Header } from '../components/ui/Header';
 import { Input } from '../components/ui/Input';
@@ -27,10 +27,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Header title="Entrar" showBack={false} />
+    <View style={styles.container}>
+      {/* Header inteligente fixo no topo lidando com a SafeArea */}
+      <Header title="Entrar" showBack={false} />
 
+      {/* Seção do Formulário */}
+      <View style={styles.form}>
         <Input 
           label="E-mail" 
           placeholder="Ex: morador@revezo.com.br" 
@@ -58,6 +60,7 @@ export default function LoginScreen() {
           style={styles.loginButton} 
         />
 
+        {/* Seção do Rodapé */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Ainda não tem conta? </Text>
           <TouchableOpacity onPress={() => router.push('/cadastro')}>
@@ -65,17 +68,44 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
-  forgotPassword: { alignSelf: 'flex-end', marginBottom: 24, marginTop: -8 },
-  forgotPasswordText: { ...typography.secondaryBold, color: colors.primary },
-  loginButton: { marginBottom: 24 },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerText: { ...typography.secondary, color: colors.textGray },
-  footerLink: { ...typography.secondaryBold, color: colors.primary },
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.background,
+    paddingTop: 160 
+  },
+  form: { 
+    paddingHorizontal: 24, 
+    paddingTop: 20 
+  },
+  forgotPassword: { 
+    alignSelf: 'flex-end', 
+    marginBottom: 24, 
+    marginTop: -8 
+  },
+  forgotPasswordText: { 
+    ...typography.secondaryBold, 
+    color: colors.primary 
+  },
+  loginButton: { 
+    marginBottom: 24 
+  },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  footerText: { 
+    ...typography.secondary, 
+    color: colors.textGray 
+  },
+  footerLink: { 
+    ...typography.secondaryBold, 
+    color: colors.primary 
+  },
 });
