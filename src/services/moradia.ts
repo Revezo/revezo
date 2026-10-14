@@ -167,3 +167,14 @@ export async function buscarMinhasMoradias(uid: string) {
 
   return { administra, participa };
 }
+
+export async function alterarMoradiaAtiva(uid: string, moradiaId: string) {
+  await setDoc(
+    doc(db, 'usuarios', uid), 
+    { 
+      moradiaId: moradiaId,
+      atualizadoEm: serverTimestamp() 
+    }, 
+    { merge: true }
+  );
+}
