@@ -3,13 +3,12 @@ import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EscolherFluxoScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.content}>
         
         <View style={styles.imageContainer}>
@@ -71,7 +70,7 @@ export default function EscolherFluxoScreen() {
       <View style={styles.footer}>
         <Text style={styles.footerText}>Revezo®</Text>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

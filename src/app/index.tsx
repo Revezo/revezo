@@ -157,6 +157,9 @@ export default function HomeScreen() {
         <TouchableOpacity onPress={() => signOut(auth)}>
           <Text style={styles.sairTexto}>Sair</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/escolher-fluxo')}>
+          <Text style={styles.sairTexto}>Escolher fluxo</Text>
+        </TouchableOpacity>
       </View>
 
       {erroExclusao && (

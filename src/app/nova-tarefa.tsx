@@ -1,3 +1,4 @@
+import { Header } from '@/components/ui/Header';
 import { colors } from '@/constants/theme';
 import { Redirect, router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -14,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
 import { PerfilUsuario, carregarPerfil, ehAdministrador } from '../services/moradia';
 import { cadastrarTarefa } from '../services/tarefas';
@@ -32,6 +32,7 @@ import {
   proximoSorteioElegivel,
   validarDadosTarefa,
 } from '../types/tarefa';
+
 
 const TIPOS: { valor: FrequenciaTipo; rotulo: string }[] = [
   { valor: 'diaria', rotulo: 'Diária' },
@@ -147,7 +148,7 @@ export default function NovaTarefaScreen() {
   // Pré-condição do RF4.
   if (!ehAdministrador(perfil)) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.aviso}>
           <Text style={styles.avisoTitulo}>Cadastro restrito</Text>
           <Text style={styles.avisoTexto}>
@@ -158,23 +159,17 @@ export default function NovaTarefaScreen() {
             <Text style={styles.botaoSecundarioTexto}>Voltar para as tarefas</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.cabecalho}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.voltar}>Cancelar</Text>
-          </TouchableOpacity>
-          <Text style={styles.titulo}>Nova tarefa</Text>
-          <View style={{ width: 64 }} />
-        </View>
+        <Header title="Nova Tarefa" />
 
         <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
           <View style={styles.bloco}>
@@ -346,22 +341,13 @@ export default function NovaTarefaScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  cabecalho: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  voltar: { color: colors.primary, fontSize: 15, width: 64 },
-  titulo: { fontSize: 18, fontWeight: '700', color: colors.textDark },
   conteudo: { padding: 20, paddingBottom: 48 },
   bloco: {
     backgroundColor: colors.inputBackground,

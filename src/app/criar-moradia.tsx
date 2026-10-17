@@ -88,7 +88,7 @@ export default function CriarMoradiaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background},
   scroll: { padding: 24, paddingBottom: 100 },
   form: { marginTop: 24, gap: 16 },
   hint: { color: colors.textGray, fontSize: 13, marginTop: 8, lineHeight: 18 },
