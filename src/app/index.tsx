@@ -1,9 +1,9 @@
+import { TelaCarregando } from '@/components/TelaCarregando';
 import { colors } from '@/constants/theme';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
@@ -29,6 +29,10 @@ import {
   proximoSorteio,
 } from '../types/tarefa';
 
+// Tempo mínimo da tela de carregamento, só na abertura do app (não a cada volta para a tela inicial).
+const TEMPO_MINIMO_CARREGAMENTO_MS = 3000;
+let carregamentoJaExibido = false;
+
 export default function HomeScreen() {
   const [usuario, setUsuario] = useState<User | null>(null);
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
@@ -37,6 +41,16 @@ export default function HomeScreen() {
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
+  const [exibindoCarregamento, setExibindoCarregamento] = useState(!carregamentoJaExibido);
+
+  useEffect(() => {
+    if (!exibindoCarregamento) return;
+    const temporizador = setTimeout(() => {
+      carregamentoJaExibido = true;
+      setExibindoCarregamento(false);
+    }, TEMPO_MINIMO_CARREGAMENTO_MS);
+    return () => clearTimeout(temporizador);
+  }, [exibindoCarregamento]);
 
   useEffect(
     () =>
@@ -86,15 +100,9 @@ export default function HomeScreen() {
     }
   };
 
-  if (carregando) {
-    return (
-      <View style={styles.centro}>
-        <ActivityIndicator color="#2f6f4e" />
-      </View>
-    );
-  }
+  if (carregando || exibindoCarregamento) return <TelaCarregando />;
 
-  if (!usuario) return <Redirect href="/login" />;
+  if (!usuario) return <Redirect href="/onboarding" />;
 
   if (!perfil) {
     return (
