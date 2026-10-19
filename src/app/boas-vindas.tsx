@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BotaoPill } from '../components/onboarding/BotaoPill';
@@ -10,28 +10,35 @@ import { GradientHero } from '../components/ui/GradientHero';
 import { LogoRevezo } from '../components/ui/Logo';
 import { colors, typography } from '../constants/theme';
 
+// Quanto o cartão branco sobe sobre o gradiente.
 const SOBREPOSICAO = 40;
 
 export default function BoasVindasScreen() {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-
-  const alturaHero = Math.max(240, Math.min(height * 0.6, height - 360));
+  const [alturaHero, setAlturaHero] = useState(0);
 
   return (
     <View style={styles.tela}>
       <StatusBar style="light" />
 
-      <GradientHero height={alturaHero}>
-        <View
-          style={[
-            styles.heroConteudo,
-            { paddingTop: insets.top, paddingBottom: SOBREPOSICAO },
-          ]}
-        >
-          <LogoRevezo color={colors.textWhite} size={132} />
-        </View>
-      </GradientHero>
+      {/* O hero ocupa todo o espaço que o cartão não usa. */}
+      <View
+        style={styles.areaHero}
+        onLayout={(e) => setAlturaHero(e.nativeEvent.layout.height)}
+      >
+        {alturaHero > 0 && (
+          <GradientHero height={alturaHero}>
+            <View
+              style={[
+                styles.heroConteudo,
+                { paddingTop: insets.top, paddingBottom: SOBREPOSICAO },
+              ]}
+            >
+              <LogoRevezo color={colors.textWhite} size={132} />
+            </View>
+          </GradientHero>
+        )}
+      </View>
 
       <View
         style={[
@@ -44,7 +51,7 @@ export default function BoasVindasScreen() {
           <Text style={styles.tituloDestaque}>Revezo</Text>
         </Text>
         <Text style={styles.descricao}>
-          A harmonia ideal para gerenciar e revezar as tarefas do seu lar de forma transparente.
+          Transforme a rotina da sua casa com uma divisão de tarefas simples e justa para todos
         </Text>
 
         <View style={styles.acoes}>
@@ -64,7 +71,10 @@ export default function BoasVindasScreen() {
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: colors.inputBackground,
+    backgroundColor: colors.primary,
+  },
+  areaHero: {
+    flex: 1,
   },
   heroConteudo: {
     flex: 1,
@@ -72,7 +82,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cartao: {
-    flex: 1,
     marginTop: -SOBREPOSICAO,
     backgroundColor: colors.inputBackground,
     borderTopLeftRadius: 36,
@@ -82,7 +91,7 @@ const styles = StyleSheet.create({
     boxShadow: '0 -10px 30px -12px rgba(16, 48, 176, 0.25)',
   },
   titulo: {
-    ...typography.title,
+    ...typography.titleExtraBold,
     fontSize: 36,
     lineHeight: 40,
     letterSpacing: -1,
@@ -99,8 +108,7 @@ const styles = StyleSheet.create({
     color: colors.textGray,
   },
   acoes: {
-    marginTop: 'auto',
-    paddingTop: 24,
+    marginTop: 32,
   },
   espaco: {
     height: medidas.espacoEntreBotoes,
