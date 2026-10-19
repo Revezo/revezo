@@ -13,6 +13,7 @@ export const colors = {
 
 export const typography = {
   title: { fontFamily: 'Sora-Bold', fontSize: 18 },
+  titleExtraBold: { fontFamily: 'Sora-ExtraBold', fontSize: 18 },
   label: { fontFamily: 'Manrope-Bold', fontSize: 11 },
   inputText: { fontFamily: 'Manrope-SemiBold', fontSize: 15 },
   buttonText: { fontFamily: 'Manrope-Bold', fontSize: 16 },
