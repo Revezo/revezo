@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cores, fontes, medidas } from './onboarding/tema';
@@ -13,7 +13,7 @@ type Props = {
  */
 export function TelaCarregando({ mensagem = 'Carregando sua moradia...' }: Props) {
   const insets = useSafeAreaInsets();
-  const giro = useRef(new Animated.Value(0)).current;
+  const [giro] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const animacao = Animated.loop(
