@@ -127,7 +127,7 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.botaoFluxo}
-          // onPress={() => router.push('/entrar-moradia')} // Farei essa tela depois
+          onPress={() => router.push('/entrar-moradia')}
         >
           <Text style={styles.botaoFluxoTitulo}>🚪 Entrar com Código</Text>
           <Text style={styles.botaoFluxoSubtexto}>

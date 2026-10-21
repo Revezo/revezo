@@ -1,5 +1,17 @@
 import { User } from 'firebase/auth';
-import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import {
+  addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 export type Papel = 'admin' | 'morador';
@@ -105,8 +117,6 @@ export async function criarMoradiaComoAdmin(
     entrouEm: serverTimestamp(),
   });
 
-  // const nomeUsuario = usuario.email?.split('@')[0] ?? 'Morador';
-
   await setDoc(
     doc(db, 'usuarios', usuario.uid),
     {
@@ -129,6 +139,85 @@ export async function criarMoradiaComoAdmin(
   };
 
   return { perfil, codigoConvite };
+}
+
+/** Entra em uma moradia existente através do código de convite como morador (não-admin). */
+export async function entrarMoradiaComCodigo(
+  usuario: User,
+  codigoConvite: string,
+  apelido: string = ''
+): Promise<{ perfil: PerfilUsuario }> {
+  const codigoFormatado = codigoConvite.trim().toUpperCase();
+  if (!codigoFormatado) {
+    throw new Error('Código inválido. Verifique o código e tente novamente.');
+  }
+
+  const moradiasRef = collection(db, 'moradias');
+  const q = query(moradiasRef, where('codigoConvite', '==', codigoFormatado));
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    throw new Error('Código inválido. Verifique o código e tente novamente.');
+  }
+
+  const moradiaDoc = querySnapshot.docs[0];
+  const moradiaId = moradiaDoc.id;
+  const dadosMoradia = moradiaDoc.data();
+
+  // Papel do usuário ao entrar por código: morador (a não ser que ele seja o criador original da moradia)
+  const ehCriador = dadosMoradia.criadaPor === usuario.uid;
+  const papel: Papel = ehCriador ? 'admin' : 'morador';
+
+  let nomeUsuario = apelido.trim();
+  if (!nomeUsuario) {
+    const usuarioSnap = await getDoc(doc(db, 'usuarios', usuario.uid));
+    if (usuarioSnap.exists() && usuarioSnap.data().nome) {
+      nomeUsuario = usuarioSnap.data().nome;
+    } else {
+      nomeUsuario = usuario.email?.split('@')[0] ?? 'Morador';
+    }
+  }
+
+  // 1. Garante que o UID do usuário esteja na lista membrosIds da moradia
+  await updateDoc(doc(db, 'moradias', moradiaId), {
+    membrosIds: arrayUnion(usuario.uid),
+  });
+
+  // 2. Registra o membro na subcoleção de membros
+  await setDoc(
+    doc(db, 'moradias', moradiaId, 'membros', usuario.uid),
+    {
+      papel,
+      apelido: nomeUsuario,
+      email: usuario.email ?? null,
+      entrouEm: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  // 3. Atualiza o perfil e moradia ativa do usuário
+  await setDoc(
+    doc(db, 'usuarios', usuario.uid),
+    {
+      email: usuario.email ?? null,
+      nome: nomeUsuario,
+      moradiaId,
+      papel,
+      atualizadoEm: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  const perfil: PerfilUsuario = {
+    uid: usuario.uid,
+    email: usuario.email,
+    nome: nomeUsuario,
+    moradiaId,
+    moradiaNome: dadosMoradia.nome ?? 'Moradia',
+    papel,
+  };
+
+  return { perfil };
 }
 
 export interface MoradiaResumo {
@@ -169,10 +258,14 @@ export async function buscarMinhasMoradias(uid: string) {
 }
 
 export async function alterarMoradiaAtiva(uid: string, moradiaId: string) {
+  const membroSnap = await getDoc(doc(db, 'moradias', moradiaId, 'membros', uid));
+  const papel: Papel = (membroSnap.exists() && membroSnap.data().papel === 'admin') ? 'admin' : 'morador';
+
   await setDoc(
     doc(db, 'usuarios', uid), 
     { 
       moradiaId: moradiaId,
+      papel,
       atualizadoEm: serverTimestamp() 
     }, 
     { merge: true }
