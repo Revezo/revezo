@@ -39,7 +39,7 @@ export default function EscolherFluxoScreen() {
 
         <TouchableOpacity 
           style={styles.card} 
-          // onPress={() => router.push('/entrar-moradia')} // Descomentar quando criar essa tela
+          onPress={() => router.push('/entrar-moradia')}
         >
           <View style={[styles.iconBg, styles.iconBgGreen]}>
             <Feather name="log-in" size={22} color="#10B981" />
