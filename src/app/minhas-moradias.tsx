@@ -51,12 +51,13 @@ export default function MinhasMoradiasScreen() {
     <TouchableOpacity 
       key={moradia.id} 
       style={styles.card}
+      activeOpacity={0.75}
       onPress={() => handleEntrarMoradia(moradia.id)}
       disabled={entrandoId !== null}
     >
       <View style={styles.cardHeader}>
         <View style={[styles.iconBg, isAdmin ? styles.iconBgAdmin : styles.iconBgMorador]}>
-          <Feather name="home" size={20} color={isAdmin ? '#3B82F6' : '#10B981'} />
+          <Feather name="home" size={20} color={isAdmin ? colors.primary : colors.greenFg} />
         </View>
         <View style={styles.cardTextContainer}>
           <Text style={styles.cardTitle}>{moradia.nome}</Text>
@@ -68,9 +69,8 @@ export default function MinhasMoradiasScreen() {
         {entrandoId === moradia.id ? (
           <ActivityIndicator size="small" color={colors.primary} />
         ) : (
-          <Feather name="chevron-right" size={20} color={colors.textGray} />
+          <Feather name="chevron-right" size={20} color={colors.iconMuted} />
         )}
-
       </View>
 
       <View style={styles.cardFooter}>
@@ -80,7 +80,7 @@ export default function MinhasMoradiasScreen() {
           </Text>
         </View>
         <View style={styles.membersContainer}>
-          <Feather name="users" size={14} color={colors.textGray} />
+          <Feather name="users" size={14} color={colors.textMuted} />
           <Text style={styles.membersText}>
             {moradia.totalMoradores} {moradia.totalMoradores === 1 ? 'morador' : 'moradores'}
           </Text>
@@ -126,7 +126,6 @@ export default function MinhasMoradiasScreen() {
               {participaMoradias.map(m => renderCard(m, false))}
             </View>
           )}
-
         </ScrollView>
       )}
 
@@ -134,6 +133,7 @@ export default function MinhasMoradiasScreen() {
         <View style={styles.footer}>
           <TouchableOpacity 
             style={styles.actionButton}
+            activeOpacity={0.8}
             onPress={() => router.push('/escolher-fluxo')}
           >
             <Text style={styles.actionButtonText}>Criar ou entrar em outra moradia</Text>
@@ -148,61 +148,70 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 24, paddingBottom: 100 },
-  totalText: { color: '#3B82F6', fontSize: 13, fontWeight: '600', marginBottom: 24 },
+  totalText: { color: colors.primary, fontSize: 13, fontFamily: 'Manrope-Bold', marginBottom: 24 },
   
   section: { marginBottom: 32 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.textDark, marginBottom: 4 },
-  sectionSubtitle: { fontSize: 13, color: colors.textGray },
-  sectionCount: { fontSize: 13, color: colors.textGray },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  sectionTitle: { fontFamily: 'Sora-Bold', fontSize: 18, color: colors.textDark, marginBottom: 4 },
+  sectionSubtitle: { fontFamily: 'Manrope-SemiBold', fontSize: 13, color: colors.textMuted },
+  sectionCount: { fontFamily: 'Manrope-Bold', fontSize: 13, color: colors.textMuted },
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: colors.stroke,
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.03)',
+    borderColor: colors.line,
+    // Sombreamento suave
+    shadowColor: '#0B1B33',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
     elevation: 2,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  iconBg: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  iconBgAdmin: { backgroundColor: '#EFF6FF' }, 
-  iconBgMorador: { backgroundColor: '#ECFDF5' }, 
-  cardTextContainer: { flex: 1, marginLeft: 12 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.textDark, marginBottom: 4 },
-  cardAddress: { fontSize: 13, color: colors.textGray },
+  iconBg: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  iconBgAdmin: { backgroundColor: colors.blueBg }, 
+  iconBgMorador: { backgroundColor: colors.greenBg }, 
+  cardTextContainer: { flex: 1, marginLeft: 14 },
+  cardTitle: { fontFamily: 'Sora-Bold', fontSize: 16, color: colors.textDark, marginBottom: 4 },
+  cardAddress: { fontFamily: 'Manrope-SemiBold', fontSize: 13, color: colors.textMuted },
   
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  badgeAdmin: { backgroundColor: '#DBEAFE' },
-  badgeMorador: { backgroundColor: '#D1FAE5' },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  badgeTextAdmin: { color: '#2563EB' },
-  badgeTextMorador: { color: '#059669' },
+  badgeAdmin: { backgroundColor: colors.blueBg },
+  badgeMorador: { backgroundColor: colors.greenBg },
+  badgeText: { fontSize: 12, fontFamily: 'Manrope-Bold' },
+  badgeTextAdmin: { color: colors.primaryInk },
+  badgeTextMorador: { color: colors.greenFg },
   
   membersContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  membersText: { fontSize: 13, color: colors.textGray },
+  membersText: { fontSize: 13, fontFamily: 'Manrope-SemiBold', color: colors.textMuted },
 
   footer: {
     padding: 24,
     paddingBottom: 40,
     backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: colors.stroke,
+    borderTopColor: colors.line,
   },
   actionButton: {
     paddingVertical: 15,
     alignItems: 'center',
     borderRadius: 24, 
     borderWidth: 1,
-    borderColor: colors.stroke,
+    borderColor: colors.line,
     backgroundColor: '#FFFFFF',
+    shadowColor: '#0B1B33',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
   },
   actionButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#3B82F6', 
+    fontFamily: 'Manrope-Bold',
+    color: colors.primary, 
   }
 });

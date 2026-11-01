@@ -16,8 +16,8 @@ export default function CriarMoradiaScreen() {
   const [carregando, setCarregando] = useState(false);
 
   async function handleCriarMoradia() {
-    if (!nome || !apelido) {
-      Alert.alert('Atenção', 'Nome da moradia e seu apelido são obrigatórios!');
+    if (!nome.trim()) {
+      Alert.alert('Atenção', 'O nome da moradia é obrigatório!');
       return;
     }
 
@@ -64,8 +64,8 @@ export default function CriarMoradiaScreen() {
           />
 
           <Input
-            label="SEU APELIDO NA MORADIA"
-            placeholder="Como quer ser chamado?"
+            label="SEU APELIDO NA MORADIA (OPCIONAL)"
+            placeholder="Como quer ser chamado nesta moradia?"
             value={apelido}
             onChangeText={setApelido}
           />
@@ -88,7 +88,7 @@ export default function CriarMoradiaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background},
+  container: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 24, paddingBottom: 100 },
   form: { marginTop: 24, gap: 16 },
   hint: { color: colors.textGray, fontSize: 13, marginTop: 8, lineHeight: 18 },
