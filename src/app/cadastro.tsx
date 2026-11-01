@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -11,7 +12,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { LogoRevezo } from '../components/ui/Logo';
 import { colors, Spacing, typography } from '../constants/theme';
-import { auth } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 
 export default function CadastroScreen() {
   const insets = useSafeAreaInsets();
@@ -29,7 +30,19 @@ export default function CadastroScreen() {
     }
     setCarregando(true);
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), senha);
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
+      if (nome.trim()) {
+        await updateProfile(cred.user, { displayName: nome.trim() });
+        await setDoc(
+          doc(db, 'usuarios', cred.user.uid),
+          {
+            nome: nome.trim(),
+            email: email.trim(),
+            atualizadoEm: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
       router.replace('/');
     } catch (erro: any) {
       Alert.alert('Não foi possível criar a conta', erro.message);
@@ -57,7 +70,6 @@ export default function CadastroScreen() {
         </GradientHero>
 
         <View style={styles.sheet}>
-          
           <TouchableOpacity 
             style={styles.pillLink} 
             activeOpacity={0.7} 

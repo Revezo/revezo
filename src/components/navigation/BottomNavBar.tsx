@@ -265,12 +265,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: '#DCE6F5',
-    // Sombra suave conforme design system
-    shadowColor: '#143CAA',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    elevation: 10,
+    // Sombra suave e fluida
+    shadowColor: '#0B1B33',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
   },
   tabItem: {
     height: 52,

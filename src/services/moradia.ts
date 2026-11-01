@@ -20,6 +20,7 @@ export interface PerfilUsuario {
   uid: string;
   email: string | null;
   nome: string;
+  apelido?: string;
   moradiaId: string;
   moradiaNome: string;
   papel: Papel;
@@ -40,16 +41,27 @@ export async function carregarPerfil(usuario: User): Promise<PerfilUsuario | nul
 
   // O papel vale dentro da moradia, então a fonte da verdade é o documento de membro.
   const membroSnap = await getDoc(doc(db, 'moradias', moradiaId, 'membros', usuario.uid));
-  const papel: Papel = (membroSnap.exists() ? membroSnap.data().papel : dados.papel) === 'admin'
+  const membroDados = membroSnap.exists() ? membroSnap.data() : null;
+  const papel: Papel = (membroDados ? membroDados.papel : dados.papel) === 'admin'
     ? 'admin'
     : 'morador';
 
   const moradiaSnap = await getDoc(doc(db, 'moradias', moradiaId));
 
+  // Nome a ser exibido:
+  // Se o usuário inseriu um apelido específico para esta moradia, tem precedência.
+  // Caso contrário, usa o nome que ele cadastrou no Firebase (dados.nome ou displayName).
+  const apelidoMoradia = membroDados?.apelido?.trim();
+  const nomeCadastrado = dados.nome?.trim() || usuario.displayName?.trim();
+  const nomeFinal = (apelidoMoradia && apelidoMoradia.length > 0)
+    ? apelidoMoradia
+    : (nomeCadastrado || (usuario.email ? usuario.email.split('@')[0] : 'Morador'));
+
   return {
     uid: usuario.uid,
     email: usuario.email,
-    nome: dados.nome ?? usuario.email?.split('@')[0] ?? 'Morador',
+    nome: nomeFinal,
+    apelido: apelidoMoradia || undefined,
     moradiaId,
     moradiaNome: moradiaSnap.exists() ? moradiaSnap.data().nome ?? 'Moradia' : 'Moradia',
     papel,
@@ -74,9 +86,9 @@ async function gerarCodigoConviteUnico(): Promise<string> {
     
     const moradiasRef = collection(db, 'moradias');
     const q = query(moradiasRef, where('codigoConvite', '==', codigo));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
       codigoUnico = true; 
     }
   }
@@ -86,11 +98,11 @@ async function gerarCodigoConviteUnico(): Promise<string> {
 
 /** Cria a moradia e torna quem criou o administrador dela. */
 export async function criarMoradiaComoAdmin(
-    usuario: User, 
-    nomeMoradia: string, 
-    endereco: string = '',
-    apelido: string = ''
-  ): Promise<{perfil: PerfilUsuario; codigoConvite: string}> {
+  usuario: User, 
+  nomeMoradia: string, 
+  endereco: string = '',
+  apelido: string = ''
+): Promise<{perfil: PerfilUsuario; codigoConvite: string}> {
 
   const nome = nomeMoradia.trim();
   if (nome.length < 3) {
@@ -108,11 +120,19 @@ export async function criarMoradiaComoAdmin(
     membrosIds: [usuario.uid],
   });
 
-  const nomeUsuario = apelido.trim() || (usuario.email?.split('@')[0] ?? 'Morador');
+  // Busca o nome de cadastro prévio para fallback
+  let nomeCadastrado = '';
+  const usuarioSnap = await getDoc(doc(db, 'usuarios', usuario.uid));
+  if (usuarioSnap.exists() && usuarioSnap.data().nome) {
+    nomeCadastrado = usuarioSnap.data().nome;
+  }
+  const nomePadrao = nomeCadastrado || usuario.displayName?.trim() || (usuario.email?.split('@')[0] ?? 'Morador');
+  const apelidoInformado = apelido.trim();
+  const nomeUsuario = apelidoInformado || nomePadrao;
 
   await setDoc(doc(db, 'moradias', moradiaRef.id, 'membros', usuario.uid), {
     papel: 'admin',
-    apelido: nomeUsuario,
+    apelido: apelidoInformado,
     email: usuario.email ?? null,
     entrouEm: serverTimestamp(),
   });
@@ -121,7 +141,7 @@ export async function criarMoradiaComoAdmin(
     doc(db, 'usuarios', usuario.uid),
     {
       email: usuario.email ?? null,
-      nome: nomeUsuario,
+      nome: nomeCadastrado || nomeUsuario,
       moradiaId: moradiaRef.id,
       papel: 'admin',
       atualizadoEm: serverTimestamp(),
@@ -133,6 +153,7 @@ export async function criarMoradiaComoAdmin(
     uid: usuario.uid,
     email: usuario.email,
     nome: nomeUsuario,
+    apelido: apelidoInformado || undefined,
     moradiaId: moradiaRef.id,
     moradiaNome: nome,
     papel: 'admin',
@@ -168,15 +189,14 @@ export async function entrarMoradiaComCodigo(
   const ehCriador = dadosMoradia.criadaPor === usuario.uid;
   const papel: Papel = ehCriador ? 'admin' : 'morador';
 
-  let nomeUsuario = apelido.trim();
-  if (!nomeUsuario) {
-    const usuarioSnap = await getDoc(doc(db, 'usuarios', usuario.uid));
-    if (usuarioSnap.exists() && usuarioSnap.data().nome) {
-      nomeUsuario = usuarioSnap.data().nome;
-    } else {
-      nomeUsuario = usuario.email?.split('@')[0] ?? 'Morador';
-    }
+  const apelidoInformado = apelido.trim();
+  let nomeCadastrado = '';
+  const usuarioSnap = await getDoc(doc(db, 'usuarios', usuario.uid));
+  if (usuarioSnap.exists() && usuarioSnap.data().nome) {
+    nomeCadastrado = usuarioSnap.data().nome;
   }
+  const nomePadrao = nomeCadastrado || usuario.displayName?.trim() || (usuario.email?.split('@')[0] ?? 'Morador');
+  const nomeUsuario = apelidoInformado || nomePadrao;
 
   // 1. Garante que o UID do usuário esteja na lista membrosIds da moradia
   await updateDoc(doc(db, 'moradias', moradiaId), {
@@ -188,7 +208,7 @@ export async function entrarMoradiaComCodigo(
     doc(db, 'moradias', moradiaId, 'membros', usuario.uid),
     {
       papel,
-      apelido: nomeUsuario,
+      apelido: apelidoInformado,
       email: usuario.email ?? null,
       entrouEm: serverTimestamp(),
     },
@@ -200,7 +220,7 @@ export async function entrarMoradiaComCodigo(
     doc(db, 'usuarios', usuario.uid),
     {
       email: usuario.email ?? null,
-      nome: nomeUsuario,
+      nome: nomeCadastrado || nomeUsuario,
       moradiaId,
       papel,
       atualizadoEm: serverTimestamp(),
@@ -212,6 +232,7 @@ export async function entrarMoradiaComCodigo(
     uid: usuario.uid,
     email: usuario.email,
     nome: nomeUsuario,
+    apelido: apelidoInformado || undefined,
     moradiaId,
     moradiaNome: dadosMoradia.nome ?? 'Moradia',
     papel,
