@@ -1,4 +1,5 @@
 import { TelaCarregando } from '@/components/TelaCarregando';
+import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { colors } from '@/constants/theme';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -42,6 +43,7 @@ export default function HomeScreen() {
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [exibindoCarregamento, setExibindoCarregamento] = useState(!carregamentoJaExibido);
+  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('home');
 
   useEffect(() => {
     if (!exibindoCarregamento) return;
@@ -243,6 +245,13 @@ export default function HomeScreen() {
           Só administradores da moradia cadastram tarefas.
         </Text>
       )}
+
+      {/* Floating Navigation Bar */}
+      <BottomNavBar
+        activeTab={abaAtiva}
+        onTabChange={(tab) => setAbaAtiva(tab)}
+        userInitial={perfil.nome ? perfil.nome.charAt(0) : 'J'}
+      />
     </SafeAreaView>
   );
 }
@@ -253,7 +262,7 @@ const styles = StyleSheet.create({
   cabecalho: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   titulo: { fontSize: 22, fontWeight: '700', color: colors.textDark },
   subtitulo: { fontSize: 13, color: colors.textGray, marginTop: 2 },
-  lista: { paddingBottom: 16 },
+  lista: { paddingBottom: 100 },
   tarefa: { backgroundColor: colors.inputBackground, borderRadius: 12, padding: 16, marginBottom: 10 },
   tarefaTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tarefaNome: { fontSize: 16, fontWeight: '600', color: colors.textDark, flex: 1, paddingRight: 12 },
@@ -292,11 +301,12 @@ const styles = StyleSheet.create({
   faixaErroTexto: { color: '#EF4444', fontSize: 13, flex: 1, paddingRight: 12 },
   faixaErroFechar: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
   vazio: { textAlign: 'center', color: colors.textGray, marginTop: 40, lineHeight: 20 },
-  botao: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 15, alignItems: 'center' },
+  botao: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 15, 
+    alignItems: 'center', marginBottom: 70 },
   botaoTexto: { color: colors.textWhite, fontSize: 16, fontWeight: '600' },
   sair: { marginTop: 16, alignItems: 'center' },
   sairTexto: { color: '#EF4444', fontSize: 15 },
-  rodapeAviso: { textAlign: 'center', color: colors.textGray, fontSize: 13, paddingVertical: 12 },
+  rodapeAviso: { textAlign: 'center', color: colors.textGray, fontSize: 13, paddingVertical: 12, marginBottom: 70 },
   bemVindoContainer: {
     alignItems: 'center',
     marginBottom: 40,

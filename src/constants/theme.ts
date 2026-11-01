@@ -2,13 +2,33 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 export const colors = {
-  background: '#F8FAFC',
+  background: '#F4F7FD',
+  bg: '#F4F7FD',
+  surface: '#FFFFFF',
   inputBackground: '#FFFFFF',
   stroke: '#DDE2E8',
+  line: '#E3EBF7',
+  navBorder: '#DCE6F5',
   textGray: '#919191',
-  textDark: '#00171F',
+  textDark: '#0B1B33',
+  text: '#0B1B33',
+  textMuted: '#53647C',
+  iconMuted: '#7B8BA3',
   textWhite: '#FFFFFF',
   primary: '#2B7FFF',
+  primaryInk: '#1D5FD1',
+
+  // Tons de destaque
+  blueBg: '#E6F0FF',
+  blueFg: '#1D5FD1',
+  greenBg: '#E1F5E9',
+  greenFg: '#11763F',
+  coralBg: '#FDE8E3',
+  coralFg: '#B4412F',
+  amberBg: '#FFF0D1',
+  amberFg: '#7A4A00',
+  violetBg: '#EDE9FE',
+  violetFg: '#5B3FC4',
 };
 
 export const typography = {
