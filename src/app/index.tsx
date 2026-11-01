@@ -1,8 +1,9 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,11 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 
 import { TelaCarregando } from '@/components/TelaCarregando';
 import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
@@ -174,7 +172,8 @@ export default function HomeScreen() {
     if (n.includes('lixo') || n.includes('descarte') || n.includes('recicl')) {
       return { icon: 'trash' as const, tone: 'green' as const };
     }
-    if (n.includes('banheiro') || n.includes('limp') || n.includes('faxina') || n.includes('quarto') || n.includes('sala')) {
+    if (n.includes('banheiro') || n.includes('limp') || n.includes('faxina') ||
+     n.includes('quarto') || n.includes('sala')) {
       return { icon: 'sparkle' as const, tone: 'violet' as const };
     }
     return { icon: 'check' as const, tone: 'blue' as const };
