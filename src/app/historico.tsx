@@ -24,13 +24,22 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../firebaseConfig';
 import { carregarPerfil, PerfilUsuario } from '../services/moradia';
-import { buscarInstanciasDoCiclo } from '../services/ciclos';
+import { atualizarStatusCiclos, buscarInstanciasDoCiclo } from '../services/ciclos';
 import { Ciclo } from '../types/ciclo';
 
 const MESES_ABREV = [
   'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
 ];
+
+function parseData(valor: any): Date {
+  if (!valor) return new Date();
+  if (typeof valor.toDate === 'function') return valor.toDate();
+  if (valor instanceof Date) return valor;
+  if (typeof valor.seconds === 'number') return new Date(valor.seconds * 1000);
+  const d = new Date(valor);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
 
 function formatarPeriodoCiclo(ciclo: Ciclo): string {
   const ini = new Date(ciclo.inicioCiclo);
@@ -81,13 +90,16 @@ export default function HistoricoListaScreen() {
   const carregarDados = useCallback(async () => {
     if (!perfil) return;
     try {
+      await atualizarStatusCiclos(perfil.moradiaId);
+
       const q = query(
         collection(db, 'ciclos'),
         where('moradiaId', '==', perfil.moradiaId),
       );
       const snapshot = await getDocs(q);
+      const agora = new Date();
 
-      const docs = snapshot.docs.map((d) => {
+      const todosDocs = snapshot.docs.map((d) => {
         const dados = d.data();
         return {
           id: d.id,
@@ -95,23 +107,34 @@ export default function HistoricoListaScreen() {
           mes: dados.mes,
           ano: dados.ano,
           numeroCiclo: dados.numeroCiclo,
-          inicioCiclo: dados.inicioCiclo?.toDate?.() ?? new Date(),
-          fimCiclo: dados.fimCiclo?.toDate?.() ?? new Date(),
-          geradoEm: dados.geradoEm?.toDate?.() ?? new Date(),
+          inicioCiclo: parseData(dados.inicioCiclo),
+          fimCiclo: parseData(dados.fimCiclo),
+          geradoEm: parseData(dados.geradoEm),
           status: dados.status ?? 'futuro',
         } as Ciclo;
       });
 
-      // Ordenar do mais recente para o mais antigo
-      docs.sort((a, b) => {
-        const tempoA = new Date(a.inicioCiclo).getTime();
-        const tempoB = new Date(b.inicioCiclo).getTime();
-        return tempoB - tempoA;
+      // Apenas ciclos já finalizados devem estar presentes no histórico.
+      // O ciclo atual (em andamento) e os ciclos futuros não aparecem.
+      const docsFinalizados = todosDocs.filter((c) => {
+        const jaEncerrouPorData = agora > c.fimCiclo;
+        const jaEncerrouPorStatus = c.status === 'encerrado';
+        const emAndamentoOuFuturo = (c.status === 'ativo' || c.status === 'futuro') && !jaEncerrouPorData;
+
+        return (jaEncerrouPorStatus || jaEncerrouPorData) && !emAndamentoOuFuturo;
+      });
+
+      // Ordenar do ciclo finalizado mais recente para o mais antigo (mais recente no topo)
+      docsFinalizados.sort((a, b) => {
+        const tempoA = a.fimCiclo.getTime();
+        const tempoB = b.fimCiclo.getTime();
+        if (tempoB !== tempoA) return tempoB - tempoA;
+        return b.inicioCiclo.getTime() - a.inicioCiclo.getTime();
       });
 
       // Carregar estatísticas para cada ciclo
       const listaComResumo: CicloResumoItem[] = await Promise.all(
-        docs.map(async (ciclo) => {
+        docsFinalizados.map(async (ciclo) => {
           const instancias = await buscarInstanciasDoCiclo(ciclo.id);
           const total = instancias.length;
           const concluidas = instancias.filter((i) => i.status === 'concluida').length;
@@ -231,7 +254,7 @@ export default function HistoricoListaScreen() {
                       {formatarPeriodoCiclo(item.ciclo)}
                     </Text>
                     <Text style={styles.cicloSemanaLabel}>
-                      Ciclo {item.ciclo.numeroCiclo} de 4 {isAtivo ? '• Atual' : ''}
+                      Ciclo {item.ciclo.numeroCiclo} de 4
                     </Text>
                   </View>
 
