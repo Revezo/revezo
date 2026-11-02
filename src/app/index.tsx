@@ -580,7 +580,7 @@ export default function HomeScreen() {
         )}
 
         {/* Botão de cadastrar tarefa para administradores */}
-        {admin && (
+        {admin && totalTarefas > 0 && (
           <TouchableOpacity
             style={styles.btnCadastrar}
             activeOpacity={0.85}
@@ -597,9 +597,11 @@ export default function HomeScreen() {
         activeTab={abaAtiva}
         onTabChange={(tab) => {
           setAbaAtiva(tab);
-          if (tab === 'perfil') {
+          if (tab === 'ciclo') {
+            router.push('/ciclo');
+          } else if (tab === 'perfil') {
             Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'ciclo' || tab === 'trocas' || tab === 'ranking') {
+          } else if (tab === 'trocas' || tab === 'ranking') {
             Alert.alert(
               tab.charAt(0).toUpperCase() + tab.slice(1),
               'Esta funcionalidade será disponibilizada na próxima etapa.',

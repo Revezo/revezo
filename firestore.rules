@@ -3,17 +3,89 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 10, 14);
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function ehMembroDaMoradia(moradiaId) {
+      return estaAutenticado() &&
+        exists(/databases/$(database)/documents/moradias/$(moradiaId)/membros/$(request.auth.uid));
+    }
+
+    function ehAdminDaMoradia(moradiaId) {
+      return estaAutenticado() &&
+        get(/databases/$(database)/documents/moradias/$(moradiaId)/membros/$(request.auth.uid)).data.papel == 'admin';
+    }
+
+    // -------------------------------------------------------------------------
+    // Usuários
+    // -------------------------------------------------------------------------
+
+    match /usuarios/{uid} {
+      allow read: if estaAutenticado();
+      allow write: if request.auth.uid == uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Moradias e membros
+    // -------------------------------------------------------------------------
+
+    match /moradias/{moradiaId} {
+      allow read: if ehMembroDaMoradia(moradiaId);
+      allow create: if estaAutenticado();
+      allow update: if ehAdminDaMoradia(moradiaId);
+      allow delete: if ehAdminDaMoradia(moradiaId);
+
+      match /membros/{uid} {
+        allow read: if ehMembroDaMoradia(moradiaId);
+        allow write: if ehAdminDaMoradia(moradiaId) || request.auth.uid == uid;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Tarefas
+    // -------------------------------------------------------------------------
+
+    match /tarefas/{tarefaId} {
+      allow read: if ehMembroDaMoradia(resource.data.moradiaId);
+      allow create: if ehAdminDaMoradia(request.resource.data.moradiaId);
+      allow update: if ehAdminDaMoradia(resource.data.moradiaId);
+      allow delete: if ehAdminDaMoradia(resource.data.moradiaId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Ciclos (semanas do mês geradas pelo motor de rotação)
+    // -------------------------------------------------------------------------
+
+    match /ciclos/{cicloId} {
+      // Qualquer membro da moradia pode ler os ciclos
+      allow read: if ehMembroDaMoradia(resource.data.moradiaId);
+      // Apenas admins podem criar/modificar ciclos (o motor roda pelo admin)
+      allow create: if ehAdminDaMoradia(request.resource.data.moradiaId);
+      allow update: if ehAdminDaMoradia(resource.data.moradiaId);
+      allow delete: if ehAdminDaMoradia(resource.data.moradiaId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Instâncias de Tarefa (atribuição M2M morador ↔ tarefa por ciclo)
+    // -------------------------------------------------------------------------
+
+    match /instancias_tarefa/{instanciaId} {
+      // Qualquer membro da moradia pode ler instâncias (para visão geral)
+      allow read: if ehMembroDaMoradia(resource.data.moradiaId);
+
+      // Apenas admins podem criar/excluir instâncias (gerado pelo motor)
+      allow create: if ehAdminDaMoradia(request.resource.data.moradiaId);
+      allow delete: if ehAdminDaMoradia(resource.data.moradiaId);
+
+      // O próprio morador pode atualizar SUA instância (marcar como concluída, adicionar fotos)
+      // Admins também podem atualizar qualquer instância
+      allow update: if ehMembroDaMoradia(resource.data.moradiaId) &&
+        (request.auth.uid == resource.data.usuarioId || ehAdminDaMoradia(resource.data.moradiaId));
     }
   }
 }

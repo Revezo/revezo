@@ -17,6 +17,7 @@ import {
   proximoSorteioElegivel,
   validarDadosTarefa,
 } from '../types/tarefa';
+import { rodarMotorRotacao } from './ciclos';
 
 export class PermissaoNegadaError extends Error {
   constructor(mensagem = 'Apenas administradores da moradia podem gerenciar tarefas.') {
@@ -67,7 +68,23 @@ export async function cadastrarTarefa(
     criadaEm: serverTimestamp(),
   });
 
-  return { id: referencia.id, nome: dados.nome.trim(), proximoSorteio: sorteio };
+  const confirmacao: ConfirmacaoCadastro = {
+    id: referencia.id,
+    nome: dados.nome.trim(),
+    proximoSorteio: sorteio,
+  };
+
+  // Dispara o motor de rotação após cadastrar a tarefa.
+  // Se o ciclo 1 do mês já foi publicado, o motor re-sorteia apenas os ciclos restantes.
+  // Em caso de falha do motor, o cadastro da tarefa não é revertido.
+  try {
+    const todasTarefas = await listarTarefas(perfil.moradiaId);
+    await rodarMotorRotacao(perfil.moradiaId, todasTarefas);
+  } catch (erroMotor) {
+    console.warn('[Motor de Rotação] Falha ao (re)sortear após cadastro:', erroMotor);
+  }
+
+  return confirmacao;
 }
 
 export async function listarTarefas(moradiaId: string): Promise<Tarefa[]> {
@@ -99,4 +116,14 @@ export async function listarTarefas(moradiaId: string): Promise<Tarefa[]> {
 export async function excluirTarefa(perfil: PerfilUsuario | null, id: string): Promise<void> {
   if (!ehAdministrador(perfil)) throw new PermissaoNegadaError();
   await deleteDoc(doc(db, 'tarefas', id));
+
+  // Re-sorteio após exclusão: respeita ciclos já publicados.
+  if (perfil) {
+    try {
+      const tarefasRestantes = await listarTarefas(perfil.moradiaId);
+      await rodarMotorRotacao(perfil.moradiaId, tarefasRestantes);
+    } catch (erroMotor) {
+      console.warn('[Motor de Rotação] Falha ao (re)sortear após exclusão:', erroMotor);
+    }
+  }
 }
