@@ -21,8 +21,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
-import { carregarPerfil, PerfilUsuario } from '../../services/moradia';
 import { buscarInstanciasDoCiclo } from '../../services/ciclos';
+import { carregarPerfil, PerfilUsuario } from '../../services/moradia';
 import { Ciclo, InstanciaTarefa, StatusInstancia } from '../../types/ciclo';
 
 // ---------------------------------------------------------------------------
@@ -566,4 +566,7 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: '#EA4335',
   },
+  badgeText: {
+    fontSize: 12,
+  }
 });
