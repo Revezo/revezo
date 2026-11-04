@@ -292,3 +292,16 @@ export async function alterarMoradiaAtiva(uid: string, moradiaId: string) {
     { merge: true }
   );
 }
+
+export async function buscarMoradiaPorId(
+  moradiaId: string,
+): Promise<{ id: string; nome: string; endereco?: string } | null> {
+  const snap = await getDoc(doc(db, 'moradias', moradiaId));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    id: snap.id,
+    nome: d.nome ?? 'Moradia',
+    endereco: d.endereco || '',
+  };
+}

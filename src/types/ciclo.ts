@@ -40,6 +40,7 @@ export interface InstanciaTarefa {
   atribuidaEm: Date;
   concluidaEm: Date | null;
   prazoFim: Date | null;
+  descricao?: string;
 }
 
 /** Perfil mínimo de um morador necessário para o algoritmo de sorteio. */
