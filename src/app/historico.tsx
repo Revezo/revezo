@@ -4,7 +4,6 @@
  */
 
 import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
-import { AppIcon } from '@/components/ui/Icons';
 import { colors } from '@/constants/theme';
 import { Feather } from '@expo/vector-icons';
 import { Redirect, router, useFocusEffect } from 'expo-router';
@@ -23,8 +22,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../firebaseConfig';
-import { carregarPerfil, PerfilUsuario } from '../services/moradia';
 import { buscarInstanciasDoCiclo } from '../services/ciclos';
+import { carregarPerfil, PerfilUsuario } from '../services/moradia';
 import { Ciclo } from '../types/ciclo';
 
 const MESES_ABREV = [
@@ -185,7 +184,8 @@ export default function HistoricoListaScreen() {
             onPress={() =>
               Alert.alert(
                 'Histórico de Ciclos',
-                'Veja o progresso e as tarefas de cada semana do mês. Toque em um ciclo para ver o detalhamento dia a dia.',
+                'Veja o progresso e as tarefas de cada semana do mês. ' + 
+                'Toque em um ciclo para ver o detalhamento dia a dia.',
               )
             }
             accessibilityLabel="Ajuda"

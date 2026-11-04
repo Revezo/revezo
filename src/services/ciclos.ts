@@ -10,6 +10,7 @@
 import {
   Timestamp,
   collection,
+  doc,
   getDocs,
   onSnapshot,
   query,
@@ -17,11 +18,17 @@ import {
   updateDoc,
   where,
   writeBatch,
-  doc,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import {
+  AtribuicaoCiclo,
+  Ciclo,
+  InstanciaTarefa,
+  MembroParaSorteio,
+  StatusCiclo,
+  StatusInstancia,
+} from '../types/ciclo';
 import { Tarefa } from '../types/tarefa';
-import { AtribuicaoCiclo, Ciclo, InstanciaTarefa, MembroParaSorteio, StatusCiclo, StatusInstancia } from '../types/ciclo';
 import {
   OpcoesSorteio,
   executarMotorRotacao,
@@ -291,15 +298,6 @@ export async function buscarInstanciasDoCicloParaUsuario(
   moradiaId: string,
   usuarioId: string,
 ): Promise<InstanciaTarefa[]> {
-  const agora = new Date();
-  const q = query(
-    collection(db, 'instancias_tarefa'),
-    where('moradiaId', '==', moradiaId),
-    where('usuarioId', '==', usuarioId),
-    where('ano', '==', agora.getFullYear()),
-    where('mes', '==', agora.getMonth()),
-  );
-  // Nota: esta query pode exigir índice composto no Firestore.
   // Como fallback, buscamos todas do ciclo ativo e filtramos no cliente.
   const cicloAtivo = await buscarCicloAtivo(moradiaId);
   if (!cicloAtivo) return [];

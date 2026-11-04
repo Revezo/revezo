@@ -11,15 +11,15 @@
  * para facilitar testes unitários independentes.
  */
 
-import { Tarefa } from '../types/tarefa';
 import { AtribuicaoCiclo, MembroParaSorteio, ResultadoMotor } from '../types/ciclo';
+import { Tarefa } from '../types/tarefa';
 
 // ---------------------------------------------------------------------------
 // Auxiliares de data
 // ---------------------------------------------------------------------------
 
 /** Retorna os 4 intervalos [inicio, fim] das semanas do mês. */
-export function calcularCiclosDoMes(ano: number, mes: number): Array<{ inicio: Date; fim: Date }> {
+export function calcularCiclosDoMes(ano: number, mes: number): { inicio: Date; fim: Date }[] {
   const totalDias = new Date(ano, mes + 1, 0).getDate();
 
   // Dividimos o mês em 4 fatias o mais uniformes possível.
@@ -27,7 +27,7 @@ export function calcularCiclosDoMes(ano: number, mes: number): Array<{ inicio: D
   const baseDias = Math.floor(totalDias / 4);
   const extras = totalDias % 4; // 0, 1, 2 ou 3
 
-  const ciclos: Array<{ inicio: Date; fim: Date }> = [];
+  const ciclos: { inicio: Date; fim: Date }[] = [];
   let diaAtual = 1;
 
   for (let i = 0; i < 4; i++) {
@@ -88,9 +88,10 @@ interface CargaMorador {
  * retorna as atribuições equilibradas por peso (greedy: menor carga primeiro).
  */
 function distribuirEntreMoradores(
-  tarefas: Array<{ tarefaId: string; tarefaNome: string; tarefaPeso: number; prazoFim: Date | null }>,
+  tarefas: { tarefaId: string; tarefaNome: string; tarefaPeso: number; prazoFim: Date | null }[],
   membros: MembroParaSorteio[],
-): Array<{ tarefaId: string; tarefaNome: string; tarefaPeso: number; prazoFim: Date | null; usuarioId: string; usuarioNome: string }> {
+): { tarefaId: string; tarefaNome: string; tarefaPeso: number; prazoFim: Date | 
+  null; usuarioId: string; usuarioNome: string }[] {
   if (membros.length === 0 || tarefas.length === 0) return [];
 
   // Inicializa carga de cada morador
@@ -172,12 +173,12 @@ export function executarMotorRotacao(
     }
 
     // Monta a lista de instâncias para este ciclo
-    const instanciasNesteCiclo: Array<{
+    const instanciasNesteCiclo: {
       tarefaId: string;
       tarefaNome: string;
       tarefaPeso: number;
       prazoFim: Date | null;
-    }> = [];
+    }[] = [];
 
     for (const tarefa of tarefasAtivas) {
       const quantidades = instanciasPorCiclo(tarefa);

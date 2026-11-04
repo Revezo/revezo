@@ -23,7 +23,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
-import { carregarPerfil, PerfilUsuario } from '../services/moradia';
 import {
   atualizarStatusCiclos,
   buscarCicloAtivo,
@@ -32,8 +31,9 @@ import {
   calcularResumoCiclo,
   rodarMotorRotacao,
 } from '../services/ciclos';
+import { carregarPerfil, PerfilUsuario } from '../services/moradia';
 import { listarTarefas } from '../services/tarefas';
-import { Ciclo, InstanciaTarefa, StatusInstancia } from '../types/ciclo';
+import { InstanciaTarefa, StatusInstancia } from '../types/ciclo';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -162,7 +162,6 @@ export default function CiclosScreen() {
   const [recarregando, setRecarregando] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
 
-  const [cicloAtivo, setCicloAtivo] = useState<Ciclo | null>(null);
   const [instancias, setInstancias] = useState<InstanciaTarefa[]>([]);
 
   useEffect(() => {
@@ -203,7 +202,6 @@ export default function CiclosScreen() {
         }
       }
 
-      setCicloAtivo(ativo);
 
       if (ativo) {
         const lista = await buscarInstanciasDoCiclo(ativo.id);
@@ -277,7 +275,8 @@ export default function CiclosScreen() {
             onPress={() =>
               Alert.alert(
                 'Sobre os Ciclos',
-                'O Revezo divide o mês em 4 ciclos semanais. Cada morador recebe tarefas equilibradas pelo peso de dificuldade.',
+                'O Revezo divide o mês em 4 ciclos semanais. Cada morador recebe tarefas ' + 
+                'equilibradas pelo peso de dificuldade.',
               )
             }
             accessibilityLabel="Ajuda"
@@ -646,4 +645,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
   },
+  badgeText: {
+    fontSize: 12,
+  }
 });
