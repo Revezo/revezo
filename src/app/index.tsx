@@ -469,7 +469,17 @@ export default function HomeScreen() {
                           : colors.coralFg;
 
                   return (
-                    <View key={tarefa.id} style={styles.taskCard}>
+                    <TouchableOpacity
+                      key={tarefa.id}
+                      style={styles.taskCard}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        router.push({
+                          pathname: '/detalhes-da-tarefa',
+                          params: { id: tarefa.id },
+                        });
+                      }}
+                    >
                       <View style={[styles.taskTile, { backgroundColor: tileBg }]}>
                         <AppIcon name={meta.icon} size={22} color={tileFg} strokeWidth={2.2} />
                       </View>
@@ -542,8 +552,12 @@ export default function HomeScreen() {
                         <TouchableOpacity
                           style={styles.photosBtn}
                           activeOpacity={0.7}
-                          onPress={() => handleAdicionarFoto(tarefa)}
-                          disabled={concluida}
+                          onPress={() => {
+                            router.push({
+                              pathname: '/detalhes-da-tarefa',
+                              params: { id: tarefa.id },
+                            });
+                          }}
                         >
                           {concluida ? (
                             <View style={styles.photosBtnInner}>
@@ -571,7 +585,7 @@ export default function HomeScreen() {
                           </TouchableOpacity>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>

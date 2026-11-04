@@ -107,7 +107,16 @@ function TarefaCardItem({
     : instancia.usuarioNome || 'Oculto';
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.7}
+      onPress={() => {
+        router.push({
+          pathname: '/detalhes-da-tarefa',
+          params: { id: instancia.id },
+        });
+      }}
+    >
       <View style={styles.cardHeaderRow}>
         <View style={styles.cardInfoCol}>
           <Text style={styles.cardTitle}>{instancia.tarefaNome}</Text>
@@ -146,7 +155,7 @@ function TarefaCardItem({
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
