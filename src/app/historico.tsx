@@ -1,8 +1,3 @@
-/**
- * Tela de Histórico — lista todos os ciclos criados para a moradia.
- * Ao clicar em um ciclo, o usuário acessa a visão detalhada por dias (historico/[cicloId].tsx).
- */
-
 import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { colors } from '@/constants/theme';
 import { Feather } from '@expo/vector-icons';
@@ -22,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../firebaseConfig';
-import { buscarInstanciasDoCiclo } from '../services/ciclos';
+import { atualizarStatusCiclos, buscarInstanciasDoCiclo } from '../services/ciclos';
 import { carregarPerfil, PerfilUsuario } from '../services/moradia';
 import { Ciclo } from '../types/ciclo';
 
@@ -43,15 +38,15 @@ function parseData(valor: any): Date {
 function formatarPeriodoCiclo(ciclo: Ciclo): string {
   const ini = new Date(ciclo.inicioCiclo);
   const fim = new Date(ciclo.fimCiclo);
-  const dIni = ini.getDate();
-  const dFim = fim.getDate();
+  const dIni = String(ini.getDate()).padStart(2, '0');
+  const dFim = String(fim.getDate()).padStart(2, '0');
   const mIni = MESES_ABREV[ini.getMonth()];
   const mFim = MESES_ABREV[fim.getMonth()];
 
   if (ini.getMonth() === fim.getMonth()) {
-    return `${dIni} ${mIni} - ${dFim} ${mFim}`;
+    return `${dIni} a ${dFim} de ${mFim}`;
   }
-  return `${dIni} ${mIni} - ${dFim} ${mFim}`;
+  return `${dIni} ${mIni} a ${dFim} ${mFim}`;
 }
 
 interface CicloResumoItem {
@@ -96,7 +91,6 @@ export default function HistoricoListaScreen() {
         where('moradiaId', '==', perfil.moradiaId),
       );
       const snapshot = await getDocs(q);
-      const agora = new Date();
 
       const todosDocs = snapshot.docs.map((d) => {
         const dados = d.data();
@@ -113,27 +107,17 @@ export default function HistoricoListaScreen() {
         } as Ciclo;
       });
 
-      // Apenas ciclos já finalizados devem estar presentes no histórico.
-      // O ciclo atual (em andamento) e os ciclos futuros não aparecem.
-      const docsFinalizados = todosDocs.filter((c) => {
-        const jaEncerrouPorData = agora > c.fimCiclo;
-        const jaEncerrouPorStatus = c.status === 'encerrado';
-        const emAndamentoOuFuturo = (c.status === 'ativo' || c.status === 'futuro') && !jaEncerrouPorData;
+      const docsHistorico = todosDocs.filter((c) => c.status !== 'futuro');
 
-        return (jaEncerrouPorStatus || jaEncerrouPorData) && !emAndamentoOuFuturo;
-      });
-
-      // Ordenar do ciclo finalizado mais recente para o mais antigo (mais recente no topo)
-      docsFinalizados.sort((a, b) => {
+      docsHistorico.sort((a, b) => {
         const tempoA = a.fimCiclo.getTime();
         const tempoB = b.fimCiclo.getTime();
         if (tempoB !== tempoA) return tempoB - tempoA;
         return b.inicioCiclo.getTime() - a.inicioCiclo.getTime();
       });
 
-      // Carregar estatísticas para cada ciclo
       const listaComResumo: CicloResumoItem[] = await Promise.all(
-        docsFinalizados.map(async (ciclo) => {
+        docsHistorico.map(async (ciclo) => {
           const instancias = await buscarInstanciasDoCiclo(ciclo.id);
           const total = instancias.length;
           const concluidas = instancias.filter((i) => i.status === 'concluida').length;
