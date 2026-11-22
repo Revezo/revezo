@@ -10,9 +10,9 @@
 import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { colors } from '@/constants/theme';
 import { Feather } from '@expo/vector-icons';
-import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +31,14 @@ import { buscarMoradiaPorId, carregarPerfil, PerfilUsuario } from '../services/m
 import { buscarTarefaPorId } from '../services/tarefas';
 import { InstanciaTarefa, StatusInstancia } from '../types/ciclo';
 import { Tarefa } from '../types/tarefa';
+
+const DESCRICAO_LOUCA =
+  'Lavar, secar e guardar toda a louça acumulada do período da janta. ' +
+  'Deixar a pia limpa, o ralo desimpedido e passar um pano úmido no fogão.';
+
+const DESCRICAO_PADRAO =
+  'Executar todas as atividades relacionadas a esta tarefa com zelo, ' +
+  'garantindo o bom convívio e a organização da moradia.';
 
 // ---------------------------------------------------------------------------
 // Mock padrão para preview quando nenhum ID for passado via rota
@@ -51,8 +59,7 @@ function criarMockInstancia(usuarioAtualId?: string): InstanciaTarefa {
     atribuidaEm: new Date(),
     concluidaEm: null,
     prazoFim: new Date(),
-    descricao:
-      'Lavar, secar e guardar toda a louça acumulada do período da janta. Deixar a pia limpa, o ralo desimpedido e passar um pano úmido no fogão.',
+    descricao: DESCRICAO_LOUCA,
   };
 }
 
@@ -92,98 +99,103 @@ export default function DetalhesDaTarefaScreen() {
   }, []);
 
   // Carrega dados da tarefa / instância
-  const carregarDados = useCallback(async () => {
-    setCarregando(true);
-    try {
-      if (id) {
-        let item = await buscarInstanciaPorId(id);
+  useEffect(() => {
+    let cancelado = false;
 
-        if (!item) {
-          // Se não encontrou como instância, pode ser uma Tarefa vinda da Home
-          const tarefa = await buscarTarefaPorId(id);
-          if (tarefa) {
-            setTarefaOrigem(tarefa);
+    const carregarDados = async () => {
+      try {
+        if (id) {
+          let item = await buscarInstanciaPorId(id);
 
-            // Tenta localizar se já existe uma instância dessa tarefa no ciclo ativo
-            let instanciaVinculada: InstanciaTarefa | null = null;
-            try {
-              const qInst = query(
-                collection(db, 'instancias_tarefa'),
-                where('moradiaId', '==', tarefa.moradiaId),
-                where('tarefaId', '==', tarefa.id)
-              );
-              const instSnap = await getDocs(qInst);
-              if (!instSnap.empty) {
-                const lista = instSnap.docs.map((d) => docParaInstancia(d.id, d.data()));
-                lista.sort((a, b) => b.atribuidaEm.getTime() - a.atribuidaEm.getTime());
-                instanciaVinculada = lista[0];
+          if (!item) {
+            // Se não encontrou como instância, pode ser uma Tarefa vinda da Home
+            const tarefa = await buscarTarefaPorId(id);
+            if (tarefa) {
+              setTarefaOrigem(tarefa);
+
+              // Tenta localizar se já existe uma instância dessa tarefa no ciclo ativo
+              let instanciaVinculada: InstanciaTarefa | null = null;
+              try {
+                const qInst = query(
+                  collection(db, 'instancias_tarefa'),
+                  where('moradiaId', '==', tarefa.moradiaId),
+                  where('tarefaId', '==', tarefa.id)
+                );
+                const instSnap = await getDocs(qInst);
+                if (!instSnap.empty) {
+                  const lista = instSnap.docs.map((d) => docParaInstancia(d.id, d.data()));
+                  lista.sort((a, b) => b.atribuidaEm.getTime() - a.atribuidaEm.getTime());
+                  instanciaVinculada = lista[0];
+                }
+              } catch (errInst) {
+                console.warn('Erro ao consultar instância por tarefaId:', errInst);
               }
-            } catch (errInst) {
-              console.warn('Erro ao consultar instância por tarefaId:', errInst);
-            }
 
-            if (instanciaVinculada) {
-              item = instanciaVinculada;
-            } else {
-              item = {
-                id: tarefa.id,
-                cicloId: '',
-                numeroCiclo: 1,
-                tarefaId: tarefa.id,
-                tarefaNome: tarefa.nome,
-                tarefaPeso: tarefa.pesoDificuldade,
-                moradiaId: tarefa.moradiaId,
-                usuarioId: tarefa.criadaPor || auth.currentUser?.uid || '',
-                usuarioNome: perfil?.nome || 'Morador',
-                status: 'pendente',
-                fotos: [],
-                atribuidaEm: tarefa.criadaEm || new Date(),
-                concluidaEm: null,
-                prazoFim: null,
-                descricao: tarefa.descricao,
-              };
-            }
-          }
-        }
-
-        if (item) {
-          setInstancia(item);
-
-          // Busca detalhes da moradia
-          if (item.moradiaId) {
-            const m = await buscarMoradiaPorId(item.moradiaId);
-            if (m) {
-              setMoradiaInfo({
-                nome: m.nome,
-                endereco: m.endereco || '',
-              });
+              if (instanciaVinculada) {
+                item = instanciaVinculada;
+              } else {
+                item = {
+                  id: tarefa.id,
+                  cicloId: '',
+                  numeroCiclo: 1,
+                  tarefaId: tarefa.id,
+                  tarefaNome: tarefa.nome,
+                  tarefaPeso: tarefa.pesoDificuldade,
+                  moradiaId: tarefa.moradiaId,
+                  usuarioId: tarefa.criadaPor || auth.currentUser?.uid || '',
+                  usuarioNome: auth.currentUser?.displayName || 'Morador',
+                  status: 'pendente',
+                  fotos: [],
+                  atribuidaEm: tarefa.criadaEm || new Date(),
+                  concluidaEm: null,
+                  prazoFim: null,
+                  descricao: tarefa.descricao,
+                };
+              }
             }
           }
 
-          // Busca tarefa de origem para obter descrição e janela adicionais, se houver
-          if (item.tarefaId) {
-            const t = await buscarTarefaPorId(item.tarefaId);
-            if (t) setTarefaOrigem(t);
+          if (item) {
+            setInstancia(item);
+
+            // Busca detalhes da moradia
+            if (item.moradiaId) {
+              const m = await buscarMoradiaPorId(item.moradiaId);
+              if (m) {
+                setMoradiaInfo({
+                  nome: m.nome,
+                  endereco: m.endereco || '',
+                });
+              }
+            }
+
+            // Busca tarefa de origem para obter descrição e janela adicionais, se houver
+            if (item.tarefaId) {
+              const t = await buscarTarefaPorId(item.tarefaId);
+              if (t) setTarefaOrigem(t);
+            }
+          } else {
+            // Se não encontrou no Firestore, usa o mock padrão
+            setInstancia(criarMockInstancia(auth.currentUser?.uid));
           }
         } else {
-          // Se não encontrou no Firestore, usa o mock padrão
+          // Sem ID na rota: usa o mock do mockup
           setInstancia(criarMockInstancia(auth.currentUser?.uid));
         }
-      } else {
-        // Sem ID na rota: usa o mock do mockup
+      } catch (e) {
+        console.warn('Erro ao carregar detalhes da tarefa:', e);
         setInstancia(criarMockInstancia(auth.currentUser?.uid));
+      } finally {
+        if (!cancelado) setCarregando(false);
       }
-    } catch (e) {
-      console.warn('Erro ao carregar detalhes da tarefa:', e);
-      setInstancia(criarMockInstancia(auth.currentUser?.uid));
-    } finally {
-      setCarregando(false);
-    }
-  }, [id]);
+    };
 
-  useEffect(() => {
     carregarDados();
-  }, [carregarDados]);
+
+    return () => {
+      cancelado = true;
+    };
+  }, [id]);
 
   // Regra fundamental: botão só aparece se usuário logado for o mesmo associado à task
   const ehUsuarioAssociado = useMemo(() => {
@@ -203,9 +215,9 @@ export default function DetalhesDaTarefaScreen() {
     if (instancia?.descricao) return instancia.descricao;
     if (tarefaOrigem?.descricao) return tarefaOrigem.descricao;
     if (instancia?.tarefaNome.toLowerCase().includes('louça')) {
-      return 'Lavar, secar e guardar toda a louça acumulada do período da janta. Deixar a pia limpa, o ralo desimpedido e passar um pano úmido no fogão.';
+      return DESCRICAO_LOUCA;
     }
-    return 'Executar todas as atividades relacionadas a esta tarefa com zelo, garantindo o bom convívio e a organização da moradia.';
+    return DESCRICAO_PADRAO;
   }, [instancia, tarefaOrigem]);
 
   // Formatação da janela de execução
@@ -225,7 +237,8 @@ export default function DetalhesDaTarefaScreen() {
   const handlePressionarFoto = (numeroFoto: number) => {
     Alert.alert(
       `Foto ${numeroFoto}`,
-      'A funcionalidade de envio e captura de fotos será integrada com a API em breve. No momento as fotos estão como placeholder.',
+      'A funcionalidade de envio e captura de fotos será integrada com a API em breve. ' +
+        'No momento as fotos estão como placeholder.',
       [{ text: 'Entendido' }],
     );
   };
@@ -241,7 +254,8 @@ export default function DetalhesDaTarefaScreen() {
 
     Alert.alert(
       'Enviar Comprovação',
-      'As fotos estão em modo placeholder (aguardando API). Deseja registrar a comprovação e marcar esta tarefa como finalizada?',
+      'As fotos estão em modo placeholder (aguardando API). ' +
+        'Deseja registrar a comprovação e marcar esta tarefa como finalizada?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {

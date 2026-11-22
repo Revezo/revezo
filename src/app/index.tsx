@@ -54,7 +54,7 @@ export default function HomeScreen() {
   const [recarregando, setRecarregando] = useState(false);
 
   // Controle local de fotos por tarefa
-  const [fotosTarefas, setFotosTarefas] = useState<Record<string, number>>({});
+  const [fotosTarefas] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!exibindoCarregamento) return;
@@ -122,21 +122,6 @@ export default function HomeScreen() {
   const getFotosNecessarias = (t: Tarefa) => Math.max(1, Math.min(3, Math.ceil(t.pesoDificuldade / 2)));
   const getFotosConcluidas = (t: Tarefa) => fotosTarefas[t.id] ?? 0;
   const isTarefaConcluida = (t: Tarefa) => getFotosConcluidas(t) >= getFotosNecessarias(t);
-
-  const handleAdicionarFoto = (t: Tarefa) => {
-    const necessarias = getFotosNecessarias(t);
-    const atuais = getFotosConcluidas(t);
-    if (atuais >= necessarias) return;
-
-    const novas = atuais + 1;
-    setFotosTarefas((prev) => ({ ...prev, [t.id]: novas }));
-
-    if (novas >= necessarias) {
-      Alert.alert('Tarefa concluída!', `Você enviou todas as fotos de "${t.nome}".`);
-    } else {
-      Alert.alert('Foto adicionada', `Foto ${novas}/${necessarias} registrada com sucesso.`);
-    }
-  };
 
   // Cálculo de dias restantes para o sorteio
   const { diasRestantesTexto, sorteioSubtitulo } = useMemo(() => {
