@@ -7,11 +7,12 @@
  * - As imagens permanecem como placeholder até a integração da API de fotos.
  */
 
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
+import { BottomNavBar } from '@/components/navigation/BottomNavBar';
+import { navegarParaAba } from '@/components/navigation/navegacaoAbas';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,7 +28,7 @@ import Svg, { Path } from 'react-native-svg';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { buscarInstanciaPorId, concluirInstancia, docParaInstancia } from '../services/ciclos';
-import { buscarMoradiaPorId, carregarPerfil, PerfilUsuario } from '../services/moradia';
+import { buscarMoradiaPorId } from '../services/moradia';
 import { buscarTarefaPorId } from '../services/tarefas';
 import { InstanciaTarefa, StatusInstancia } from '../types/ciclo';
 import { Tarefa } from '../types/tarefa';
@@ -68,11 +69,9 @@ export default function DetalhesDaTarefaScreen() {
   const params = useLocalSearchParams<{ id?: string; instanciaId?: string }>();
   const id = params.id || params.instanciaId;
 
-  const [usuario, setUsuario] = useState<User | null>(null);
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const { usuario, perfil } = useSessao();
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
 
   const [instancia, setInstancia] = useState<InstanciaTarefa | null>(null);
   const [tarefaOrigem, setTarefaOrigem] = useState<Tarefa | null>(null);
@@ -80,23 +79,6 @@ export default function DetalhesDaTarefaScreen() {
     nome: 'Moradia da Luiza',
     endereco: 'Nova Imperatriz',
   });
-
-  // Escuta autenticação
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
-      setUsuario(u);
-      if (u) {
-        try {
-          const p = await carregarPerfil(u);
-          setPerfil(p);
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-      }
-    });
-  }, []);
 
   // Carrega dados da tarefa / instância
   useEffect(() => {
@@ -314,7 +296,7 @@ export default function DetalhesDaTarefaScreen() {
               if (router.canGoBack()) {
                 router.back();
               } else {
-                router.replace('/ciclo');
+                router.dismissTo('/ciclo');
               }
             }}
             activeOpacity={0.7}
@@ -463,25 +445,7 @@ export default function DetalhesDaTarefaScreen() {
       </ScrollView>
 
       {/* Barra de Navegação Inferior */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'home') {
-            router.replace('/');
-          } else if (tab === 'ciclo') {
-            router.push('/ciclo');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
+      <BottomNavBar activeTab="ciclo" onTabChange={navegarParaAba} userInitial={inicialUsuario} />
     </View>
   );
 }

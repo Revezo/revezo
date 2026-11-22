@@ -4,13 +4,12 @@
  * Visual fiel ao design do Revezo.
  */
 
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { AppIcon } from '@/components/ui/Icons';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
 import { Redirect, router, useFocusEffect } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,7 +21,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auth } from '../firebaseConfig';
 import {
   atualizarStatusCiclos,
   buscarCicloAtivo,
@@ -30,10 +28,9 @@ import {
   buscarInstanciasDoCiclo,
   calcularResumoCiclo,
   rodarMotorRotacao,
-} from '../services/ciclos';
-import { carregarPerfil, PerfilUsuario } from '../services/moradia';
-import { listarTarefas } from '../services/tarefas';
-import { InstanciaTarefa, StatusInstancia } from '../types/ciclo';
+} from '@/services/ciclos';
+import { listarTarefas } from '@/services/tarefas';
+import { InstanciaTarefa, StatusInstancia } from '@/types/ciclo';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -166,28 +163,12 @@ function TarefaCardItem({
 export default function CiclosScreen() {
   const insets = useSafeAreaInsets();
 
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
-  const [carregando, setCarregando] = useState(true);
+  const { usuario, perfil } = useSessao();
   const [recarregando, setRecarregando] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
 
   const [instancias, setInstancias] = useState<InstanciaTarefa[]>([]);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (usuario) => {
-      if (usuario) {
-        try {
-          const p = await carregarPerfil(usuario);
-          setPerfil(p);
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-      }
-      setCarregando(false);
-    });
-  }, []);
+  // Só na primeira visita a lista ainda não chegou; nas próximas a tela já está montada com os dados
+  const [instanciasCarregadas, setInstanciasCarregadas] = useState(false);
 
   const carregarDados = useCallback(async () => {
     if (!perfil) return;
@@ -220,6 +201,8 @@ export default function CiclosScreen() {
       }
     } catch (e) {
       console.warn('Erro ao carregar dados do ciclo:', e);
+    } finally {
+      setInstanciasCarregadas(true);
     }
   }, [perfil]);
 
@@ -237,17 +220,7 @@ export default function CiclosScreen() {
 
   const resumo = useMemo(() => calcularResumoCiclo(instancias), [instancias]);
 
-  if (carregando) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
-
-  if (!auth.currentUser) return <Redirect href="/login" />;
-
-  const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
+  if (!usuario) return <Redirect href="/login" />;
 
   return (
     <View style={styles.container}>
@@ -270,7 +243,7 @@ export default function CiclosScreen() {
           <TouchableOpacity
             style={styles.circleBtn}
             activeOpacity={0.7}
-            onPress={() => router.replace('/')}
+            onPress={() => router.navigate('/')}
             accessibilityLabel="Voltar"
           >
             <Feather name="arrow-left" size={20} color={colors.textDark} />
@@ -331,7 +304,9 @@ export default function CiclosScreen() {
         </View>
 
         {/* Lista de instâncias de tarefas de todos os moradores */}
-        {instancias.length === 0 ? (
+        {!instanciasCarregadas ? (
+          <ActivityIndicator color={colors.primary} style={styles.listaCarregando} />
+        ) : instancias.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>Nenhuma tarefa neste ciclo</Text>
             <Text style={styles.emptySubtitle}>
@@ -349,25 +324,6 @@ export default function CiclosScreen() {
           ))
         )}
       </ScrollView>
-
-      {/* Barra de Navegação Flutuante */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'home') {
-            router.replace('/');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
     </View>
   );
 }
@@ -381,11 +337,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F7FD',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F7FD',
+  listaCarregando: {
+    marginTop: 24,
   },
   scrollContent: {
     paddingHorizontal: 20,

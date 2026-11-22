@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/ui/Header';
 import { Input } from '@/components/ui/Input';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { auth } from '@/firebaseConfig';
 import { criarMoradiaComoAdmin } from '@/services/moradia';
 import { useRouter } from 'expo-router';
@@ -10,6 +11,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function CriarMoradiaScreen() {
   const router = useRouter();
+  const { recarregarPerfil } = useSessao();
   const [nome, setNome] = useState('');
   const [endereco, setEndereco] = useState('');
   const [apelido, setApelido] = useState('');
@@ -30,7 +32,8 @@ export default function CriarMoradiaScreen() {
     setCarregando(true);
     try {
       const resposta = await criarMoradiaComoAdmin(usuarioAtual, nome, endereco, apelido);
-      
+      await recarregarPerfil();
+
       router.push({
         pathname: '/codigo-convite',
         params: { codigo: resposta.codigoConvite }

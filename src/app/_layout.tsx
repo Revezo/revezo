@@ -3,9 +3,38 @@ import { Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
 import Feather from '@expo/vector-icons/Feather';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { TelaCarregando } from '../components/TelaCarregando';
 import { colors } from '../constants/theme';
+import { SessaoProvider, useSessao } from '../contexts/SessaoContext';
+
+// Tempo mínimo da tela de carregamento na abertura do app
+const TEMPO_MINIMO_CARREGAMENTO_MS = 3000;
+
+function AppNavegacao() {
+  const { carregando } = useSessao();
+  const [tempoMinimoPassou, setTempoMinimoPassou] = useState(false);
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => setTempoMinimoPassou(true), TEMPO_MINIMO_CARREGAMENTO_MS);
+    return () => clearTimeout(temporizador);
+  }, []);
+
+  const exibindoSplash = carregando || !tempoMinimoPassou;
+
+  return (
+    <View style={styles.flex}>
+      <Stack screenOptions={{ headerShown: false }} />
+      {/* Splash só na abertura do app; as telas já vão se montando por baixo */}
+      {exibindoSplash && (
+        <View style={StyleSheet.absoluteFill}>
+          <TelaCarregando />
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function Layout() {
   const [fontsLoaded] = useFonts({
@@ -17,13 +46,27 @@ export default function Layout() {
     ...Feather.font,
   });
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <SessaoProvider>
+      {fontsLoaded ? (
+        <AppNavegacao />
+      ) : (
+        <View style={styles.carregandoFontes}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+    </SessaoProvider>
+  );
 }
+
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  carregandoFontes: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+});

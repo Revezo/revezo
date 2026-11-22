@@ -3,11 +3,12 @@
  * Fiel ao segundo mockup de Histórico fornecido pelo usuário.
  */
 
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
+import { BottomNavBar } from '@/components/navigation/BottomNavBar';
+import { navegarParaAba } from '@/components/navigation/navegacaoAbas';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -20,9 +21,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auth, db } from '../../firebaseConfig';
+import { db } from '../../firebaseConfig';
 import { buscarInstanciasDoCiclo } from '../../services/ciclos';
-import { carregarPerfil, PerfilUsuario } from '../../services/moradia';
 import { Ciclo, InstanciaTarefa, StatusInstancia } from '../../types/ciclo';
 
 // ---------------------------------------------------------------------------
@@ -121,9 +121,8 @@ export default function HistoricoCicloDetalheScreen() {
   const insets = useSafeAreaInsets();
   const { cicloId } = useLocalSearchParams<{ cicloId: string }>();
 
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const { usuario, perfil } = useSessao();
   const [carregando, setCarregando] = useState(true);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
 
   const [ciclo, setCiclo] = useState<Ciclo | null>(null);
   const [instancias, setInstancias] = useState<InstanciaTarefa[]>([]);
@@ -139,21 +138,6 @@ export default function HistoricoCicloDetalheScreen() {
       [indice]: !prev[indice],
     }));
   };
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (usuario) => {
-      if (usuario) {
-        try {
-          const p = await carregarPerfil(usuario);
-          setPerfil(p);
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-      }
-    });
-  }, []);
 
   useEffect(() => {
     async function carregar() {
@@ -240,7 +224,7 @@ export default function HistoricoCicloDetalheScreen() {
     );
   }
 
-  if (!auth.currentUser) return <Redirect href="/login" />;
+  if (!usuario) return <Redirect href="/login" />;
 
   const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
 
@@ -350,25 +334,7 @@ export default function HistoricoCicloDetalheScreen() {
       </ScrollView>
 
       {/* Barra de Navegação Flutuante */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'home') {
-            router.replace('/');
-          } else if (tab === 'ciclo') {
-            router.push('/ciclo');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
+      <BottomNavBar activeTab="ciclo" onTabChange={navegarParaAba} userInitial={inicialUsuario} />
     </View>
   );
 }

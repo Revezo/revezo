@@ -5,11 +5,13 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 
 import { Header } from '@/components/ui/Header';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { auth } from '@/firebaseConfig';
 import { alterarMoradiaAtiva, buscarMinhasMoradias, MoradiaResumo } from '@/services/moradia';
 
 export default function MinhasMoradiasScreen() {
   const router = useRouter();
+  const { recarregarPerfil } = useSessao();
   const [carregando, setCarregando] = useState(true);
   const [adminMoradias, setAdminMoradias] = useState<MoradiaResumo[]>([]);
   const [participaMoradias, setParticipaMoradias] = useState<MoradiaResumo[]>([]);
@@ -21,7 +23,8 @@ export default function MinhasMoradiasScreen() {
     setEntrandoId(moradiaId);
     try {
       await alterarMoradiaAtiva(auth.currentUser.uid, moradiaId);
-      
+      await recarregarPerfil();
+
       router.push('/');
     } catch {
       Alert.alert('Erro', 'Não foi possível acessar a moradia.');
