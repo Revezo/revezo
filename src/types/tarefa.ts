@@ -34,6 +34,8 @@ export interface DadosNovaTarefa {
   prazoConclusaoDias: number | null;
   /** Opcional: horas mínimas entre o sorteio e a execução da tarefa. */
   janelaAntecedenciaHoras: number | null;
+  /** Opcional: descrição detalhada ou orientações da tarefa. */
+  descricao?: string;
 }
 
 export interface Tarefa extends DadosNovaTarefa {

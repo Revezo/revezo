@@ -53,8 +53,6 @@ export default function HomeScreen() {
   const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('home');
   const [recarregando, setRecarregando] = useState(false);
 
-  // Controle local de fotos por tarefa
-  const [fotosTarefas, setFotosTarefas] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!exibindoCarregamento) return;
@@ -120,23 +118,8 @@ export default function HomeScreen() {
 
   // Fotos necessárias por tarefa (baseado no peso ou mínimo 1)
   const getFotosNecessarias = (t: Tarefa) => Math.max(1, Math.min(3, Math.ceil(t.pesoDificuldade / 2)));
-  const getFotosConcluidas = (t: Tarefa) => fotosTarefas[t.id] ?? 0;
-  const isTarefaConcluida = (t: Tarefa) => getFotosConcluidas(t) >= getFotosNecessarias(t);
-
-  const handleAdicionarFoto = (t: Tarefa) => {
-    const necessarias = getFotosNecessarias(t);
-    const atuais = getFotosConcluidas(t);
-    if (atuais >= necessarias) return;
-
-    const novas = atuais + 1;
-    setFotosTarefas((prev) => ({ ...prev, [t.id]: novas }));
-
-    if (novas >= necessarias) {
-      Alert.alert('Tarefa concluída!', `Você enviou todas as fotos de "${t.nome}".`);
-    } else {
-      Alert.alert('Foto adicionada', `Foto ${novas}/${necessarias} registrada com sucesso.`);
-    }
-  };
+  const getFotosConcluidas = (_t: Tarefa) => 0;
+  const isTarefaConcluida = (_t: Tarefa) => false;
 
   // Cálculo de dias restantes para o sorteio
   const { diasRestantesTexto, sorteioSubtitulo } = useMemo(() => {
@@ -469,7 +452,17 @@ export default function HomeScreen() {
                           : colors.coralFg;
 
                   return (
-                    <View key={tarefa.id} style={styles.taskCard}>
+                    <TouchableOpacity
+                      key={tarefa.id}
+                      style={styles.taskCard}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        router.push({
+                          pathname: '/detalhes-da-tarefa',
+                          params: { id: tarefa.id },
+                        });
+                      }}
+                    >
                       <View style={[styles.taskTile, { backgroundColor: tileBg }]}>
                         <AppIcon name={meta.icon} size={22} color={tileFg} strokeWidth={2.2} />
                       </View>
@@ -539,12 +532,7 @@ export default function HomeScreen() {
                           </Text>
                         </View>
 
-                        <TouchableOpacity
-                          style={styles.photosBtn}
-                          activeOpacity={0.7}
-                          onPress={() => handleAdicionarFoto(tarefa)}
-                          disabled={concluida}
-                        >
+                        <View style={styles.photosBtn} pointerEvents="none">
                           {concluida ? (
                             <View style={styles.photosBtnInner}>
                               <AppIcon name="check" size={14} color={colors.greenFg} strokeWidth={2.8} />
@@ -560,7 +548,7 @@ export default function HomeScreen() {
                               <AppIcon name="arrowRight" size={14} color={colors.primaryInk} strokeWidth={2.4} />
                             </View>
                           )}
-                        </TouchableOpacity>
+                        </View>
 
                         {admin && confirmandoId !== tarefa.id && (
                           <TouchableOpacity
@@ -571,7 +559,7 @@ export default function HomeScreen() {
                           </TouchableOpacity>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>

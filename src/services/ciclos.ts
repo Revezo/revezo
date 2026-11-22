@@ -11,6 +11,7 @@ import {
   Timestamp,
   collection,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -75,7 +76,7 @@ function docParaCiclo(id: string, dados: any): Ciclo {
   };
 }
 
-function docParaInstancia(id: string, dados: any): InstanciaTarefa {
+export function docParaInstancia(id: string, dados: any): InstanciaTarefa {
   return {
     id,
     cicloId: dados.cicloId,
@@ -91,6 +92,7 @@ function docParaInstancia(id: string, dados: any): InstanciaTarefa {
     atribuidaEm: dados.atribuidaEm?.toDate?.() ?? new Date(),
     concluidaEm: dados.concluidaEm?.toDate?.() ?? null,
     prazoFim: dados.prazoFim?.toDate?.() ?? null,
+    descricao: dados.descricao ?? undefined,
   };
 }
 
@@ -289,6 +291,15 @@ export async function buscarInstanciasDoCiclo(cicloId: string): Promise<Instanci
   return snapshot.docs
     .map((d) => docParaInstancia(d.id, d.data()))
     .sort((a, b) => b.tarefaPeso - a.tarefaPeso);
+}
+
+/**
+ * Busca uma instância de tarefa específica por ID.
+ */
+export async function buscarInstanciaPorId(id: string): Promise<InstanciaTarefa | null> {
+  const snap = await getDoc(doc(db, 'instancias_tarefa', id));
+  if (!snap.exists()) return null;
+  return docParaInstancia(snap.id, snap.data());
 }
 
 /**
