@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -107,10 +108,32 @@ export async function listarTarefas(moradiaId: string): Promise<Tarefa[]> {
         proximoSorteioElegivel: dados.proximoSorteioElegivel?.toDate?.() ?? null,
         criadaPor: dados.criadaPor ?? '',
         criadaEm: dados.criadaEm?.toDate?.() ?? null,
+        descricao: dados.descricao ?? undefined,
       } as Tarefa;
     })
     // Ordenação no cliente para não exigir índice composto no Firestore.
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+export async function buscarTarefaPorId(id: string): Promise<Tarefa | null> {
+  const snap = await getDoc(doc(db, 'tarefas', id));
+  if (!snap.exists()) return null;
+  const dados = snap.data() as any;
+  return {
+    id: snap.id,
+    moradiaId: dados.moradiaId,
+    nome: dados.nome,
+    frequencia: dados.frequencia,
+    pesoDificuldade: dados.pesoDificuldade ?? 1,
+    prazoConclusaoDias: dados.prazoConclusaoDias ?? null,
+    janelaAntecedenciaHoras: dados.janelaAntecedenciaHoras ?? null,
+    ativa: dados.ativa ?? true,
+    disponivelParaSorteio: dados.disponivelParaSorteio ?? true,
+    proximoSorteioElegivel: dados.proximoSorteioElegivel?.toDate?.() ?? null,
+    criadaPor: dados.criadaPor ?? '',
+    criadaEm: dados.criadaEm?.toDate?.() ?? null,
+    descricao: dados.descricao ?? undefined,
+  } as Tarefa;
 }
 
 export async function excluirTarefa(perfil: PerfilUsuario | null, id: string): Promise<void> {
