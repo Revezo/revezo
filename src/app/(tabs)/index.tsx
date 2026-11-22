@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, useFocusEffect } from 'expo-router';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { signOut } from 'firebase/auth';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -14,27 +14,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { TelaCarregando } from '@/components/TelaCarregando';
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { AppIcon } from '@/components/ui/Icons';
 import { colors } from '@/constants/theme';
-import { auth } from '../firebaseConfig';
-import {
-  PerfilUsuario,
-  carregarPerfil,
-  ehAdministrador,
-} from '../services/moradia';
-import { excluirTarefa, listarTarefas } from '../services/tarefas';
+import { useSessao } from '@/contexts/SessaoContext';
+import { auth } from '@/firebaseConfig';
+import { ehAdministrador } from '@/services/moradia';
+import { excluirTarefa, listarTarefas } from '@/services/tarefas';
 import {
   DIAS_SEMANA,
   Tarefa,
   descreverFrequencia,
   proximoSorteio,
-} from '../types/tarefa';
-
-// Tempo mínimo da tela de carregamento na abertura do app
-const TEMPO_MINIMO_CARREGAMENTO_MS = 3000;
-let carregamentoJaExibido = false;
+} from '@/types/tarefa';
 
 const RADIUS = 31;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS; // ~194.78
@@ -42,45 +33,15 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS; // ~194.78
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
 
-  const [usuario, setUsuario] = useState<User | null>(null);
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
-  const [carregando, setCarregando] = useState(true);
+  const { usuario, perfil, carregando } = useSessao();
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
-  const [exibindoCarregamento, setExibindoCarregamento] = useState(!carregamentoJaExibido);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('home');
   const [recarregando, setRecarregando] = useState(false);
 
   // Controle local de fotos por tarefa
   const [fotosTarefas] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (!exibindoCarregamento) return;
-    const temporizador = setTimeout(() => {
-      carregamentoJaExibido = true;
-      setExibindoCarregamento(false);
-    }, TEMPO_MINIMO_CARREGAMENTO_MS);
-    return () => clearTimeout(temporizador);
-  }, [exibindoCarregamento]);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (atual) => {
-      setUsuario(atual);
-      if (atual) {
-        try {
-          setPerfil(await carregarPerfil(atual));
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-        setTarefas([]);
-      }
-      setCarregando(false);
-    });
-  }, []);
 
   const atualizarLista = useCallback(async () => {
     if (!perfil) return;
@@ -188,7 +149,8 @@ export default function HomeScreen() {
   const pendentes = totalTarefas - concluidas;
   const offset = totalTarefas > 0 ? CIRCUMFERENCE * (1 - concluidas / totalTarefas) : CIRCUMFERENCE;
 
-  if (carregando || exibindoCarregamento) return <TelaCarregando />;
+  // A splash da abertura do app fica por cima (no layout raiz) enquanto a sessão carrega
+  if (carregando) return <View style={styles.container} />;
 
   if (!usuario) return <Redirect href="/onboarding" />;
 
@@ -240,7 +202,6 @@ export default function HomeScreen() {
   // Senão, usa o primeiro nome cadastrado no Firebase.
   const nomeExibicao = (perfil.apelido || perfil.nome || 'Morador').trim();
   const primeiroNome = perfil.apelido ? perfil.apelido.trim() : nomeExibicao.split(' ')[0];
-  const inicialUsuario = (perfil.apelido || perfil.nome || 'M').trim().charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -590,25 +551,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
-
-      {/* Barra de Navegação Flutuante Modular */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'ciclo') {
-            router.push('/ciclo');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
     </View>
   );
 }

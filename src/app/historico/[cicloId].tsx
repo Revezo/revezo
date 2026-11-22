@@ -3,11 +3,10 @@
  * Fiel ao segundo mockup de Histórico fornecido pelo usuário.
  */
 
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -20,9 +19,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auth, db } from '../../firebaseConfig';
+import { db } from '../../firebaseConfig';
 import { buscarInstanciasDoCiclo } from '../../services/ciclos';
-import { carregarPerfil, PerfilUsuario } from '../../services/moradia';
 import { Ciclo, InstanciaTarefa, StatusInstancia } from '../../types/ciclo';
 
 // ---------------------------------------------------------------------------
@@ -121,9 +119,8 @@ export default function HistoricoCicloDetalheScreen() {
   const insets = useSafeAreaInsets();
   const { cicloId } = useLocalSearchParams<{ cicloId: string }>();
 
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const { usuario } = useSessao();
   const [carregando, setCarregando] = useState(true);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
 
   const [ciclo, setCiclo] = useState<Ciclo | null>(null);
   const [instancias, setInstancias] = useState<InstanciaTarefa[]>([]);
@@ -139,21 +136,6 @@ export default function HistoricoCicloDetalheScreen() {
       [indice]: !prev[indice],
     }));
   };
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (usuario) => {
-      if (usuario) {
-        try {
-          const p = await carregarPerfil(usuario);
-          setPerfil(p);
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-      }
-    });
-  }, []);
 
   useEffect(() => {
     async function carregar() {
@@ -232,17 +214,7 @@ export default function HistoricoCicloDetalheScreen() {
     return Math.round((concluidas / instancias.length) * 100);
   }, [instancias]);
 
-  if (carregando) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
-
-  if (!auth.currentUser) return <Redirect href="/login" />;
-
-  const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
+  if (!usuario) return <Redirect href="/login" />;
 
   return (
     <View style={styles.container}>
@@ -281,16 +253,21 @@ export default function HistoricoCicloDetalheScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Linha de Período e Badge 97% */}
-        <View style={styles.periodoRow}>
-          <Text style={styles.periodoTexto}>
-            {ciclo ? formatarPeriodoSemana(ciclo) : 'Semana Selecionada'}
-          </Text>
+        {/* Enquanto carrega, a tela já aparece com o cabeçalho; só o conteúdo espera */}
+        {carregando && <ActivityIndicator color={colors.primary} style={styles.carregandoConteudo} />}
 
-          <View style={styles.percentBadgePill}>
-            <Text style={styles.percentBadgePillText}>{percentualTotal}%</Text>
+        {/* Linha de Período e Badge 97% */}
+        {!carregando && (
+          <View style={styles.periodoRow}>
+            <Text style={styles.periodoTexto}>
+              {ciclo ? formatarPeriodoSemana(ciclo) : 'Semana Selecionada'}
+            </Text>
+
+            <View style={styles.percentBadgePill}>
+              <Text style={styles.percentBadgePillText}>{percentualTotal}%</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Lista de Dias (Accordion) */}
         <View style={styles.accordionContainer}>
@@ -349,26 +326,6 @@ export default function HistoricoCicloDetalheScreen() {
         </View>
       </ScrollView>
 
-      {/* Barra de Navegação Flutuante */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'home') {
-            router.replace('/');
-          } else if (tab === 'ciclo') {
-            router.push('/ciclo');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
     </View>
   );
 }
@@ -382,11 +339,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F7FD',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F7FD',
+  carregandoConteudo: {
+    marginTop: 40,
   },
   scrollContent: {
     paddingHorizontal: 20,

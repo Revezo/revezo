@@ -1,10 +1,9 @@
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
 import { Redirect, router, useFocusEffect } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,9 +15,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auth, db } from '../firebaseConfig';
+import { db } from '../firebaseConfig';
 import { atualizarStatusCiclos, buscarInstanciasDoCiclo } from '../services/ciclos';
-import { carregarPerfil, PerfilUsuario } from '../services/moradia';
 import { Ciclo } from '../types/ciclo';
 
 const MESES_ABREV = [
@@ -59,27 +57,10 @@ interface CicloResumoItem {
 export default function HistoricoListaScreen() {
   const insets = useSafeAreaInsets();
 
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
-  const [carregando, setCarregando] = useState(true);
+  const { usuario, perfil } = useSessao();
   const [recarregando, setRecarregando] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
   const [ciclos, setCiclos] = useState<CicloResumoItem[]>([]);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (usuario) => {
-      if (usuario) {
-        try {
-          const p = await carregarPerfil(usuario);
-          setPerfil(p);
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-      }
-      setCarregando(false);
-    });
-  }, []);
+  const [ciclosCarregados, setCiclosCarregados] = useState(false);
 
   const carregarDados = useCallback(async () => {
     if (!perfil) return;
@@ -129,6 +110,8 @@ export default function HistoricoListaScreen() {
       setCiclos(listaComResumo);
     } catch (e) {
       console.warn('Erro ao carregar histórico de ciclos:', e);
+    } finally {
+      setCiclosCarregados(true);
     }
   }, [perfil]);
 
@@ -144,17 +127,8 @@ export default function HistoricoListaScreen() {
     setRecarregando(false);
   };
 
-  if (carregando) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
+  if (!usuario) return <Redirect href="/login" />;
 
-  if (!auth.currentUser) return <Redirect href="/login" />;
-
-  const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -209,7 +183,9 @@ export default function HistoricoListaScreen() {
         </View>
 
         {/* Lista de ciclos */}
-        {ciclos.length === 0 ? (
+        {!ciclosCarregados ? (
+          <ActivityIndicator color={colors.primary} style={styles.listaCarregando} />
+        ) : ciclos.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>Nenhum ciclo no histórico</Text>
             <Text style={styles.emptySubtitle}>
@@ -285,26 +261,6 @@ export default function HistoricoListaScreen() {
         )}
       </ScrollView>
 
-      {/* Barra de Navegação Flutuante */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'home') {
-            router.replace('/');
-          } else if (tab === 'ciclo') {
-            router.push('/ciclo');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
     </View>
   );
 }
@@ -318,11 +274,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F7FD',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F7FD',
+  listaCarregando: {
+    marginTop: 24,
   },
   scrollContent: {
     paddingHorizontal: 20,

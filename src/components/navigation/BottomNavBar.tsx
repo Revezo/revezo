@@ -1,13 +1,25 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Pressable,
   StyleProp,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  interpolate,
+  LinearTransition,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from '@/constants/theme';
@@ -154,6 +166,99 @@ const TABS: TabDef[] = [
   { id: 'perfil', label: 'Perfil' },
 ];
 
+// ---------------------------------------------------------------------------
+// Animação da troca de aba
+// A aba que perde o foco "fecha" (só o ícone) e a escolhida "abre" (ícone + nome);
+// as demais deslizam para acomodar a nova largura.
+// ---------------------------------------------------------------------------
+
+const DURACAO_MS = 280;
+const TRANSICAO_LAYOUT = LinearTransition.springify().damping(20).stiffness(220).mass(0.9);
+const ENTRADA_LABEL = FadeIn.duration(200).delay(90);
+const SAIDA_LABEL = FadeOut.duration(90);
+
+const COR_ICONE_INATIVO = '#5B6B82';
+
+interface TabItemProps {
+  tab: TabDef;
+  isActive: boolean;
+  userInitial: string;
+  onPress: () => void;
+}
+
+function TabItem({ tab, isActive, userInitial, onPress }: TabItemProps) {
+  const progresso = useSharedValue(isActive ? 1 : 0);
+  const [corIcone, setCorIcone] = useState(isActive ? colors.primary : COR_ICONE_INATIVO);
+
+  useEffect(() => {
+    progresso.set(withTiming(isActive ? 1 : 0, { duration: DURACAO_MS, easing: Easing.out(Easing.cubic) }));
+  }, [isActive, progresso]);
+
+  // A cor do ícone (SVG) acompanha o progresso da animação
+  useAnimatedReaction(
+    () => progresso.get() > 0.5,
+    (ativo, anterior) => {
+      if (ativo !== anterior) scheduleOnRN(setCorIcone, ativo ? colors.primary : COR_ICONE_INATIVO);
+    },
+  );
+
+  const estiloFundo = useAnimatedStyle(() => ({
+    opacity: progresso.get(),
+    transform: [{ scale: interpolate(progresso.get(), [0, 1], [0.7, 1]) }],
+  }));
+
+  const ehPerfil = tab.id === 'perfil';
+
+  return (
+    <Animated.View layout={TRANSICAO_LAYOUT} style={styles.tabSlot}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.tabItem,
+          isActive && (ehPerfil ? styles.activeTabItemWithAvatar : styles.activeTabItem),
+          pressed && styles.tabPressionada,
+        ]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={tab.label}
+        accessibilityState={{ selected: isActive }}
+      >
+        <Animated.View pointerEvents="none" style={[styles.fundoAtivo, estiloFundo]} />
+
+        {ehPerfil ? (
+          <LinearGradient
+            colors={['#8FD0FF', '#2B7FFF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatarCircle}
+          >
+            <Text style={styles.avatarText}>{userInitial.toUpperCase()}</Text>
+          </LinearGradient>
+        ) : (
+          tab.icon && (
+            <NavIcon
+              name={tab.icon}
+              color={corIcone}
+              size={22}
+              strokeWidth={corIcone === colors.primary ? 2.4 : 2.0}
+            />
+          )
+        )}
+
+        {isActive && (
+          <Animated.Text
+            entering={ENTRADA_LABEL}
+            exiting={SAIDA_LABEL}
+            numberOfLines={1}
+            style={styles.activeLabel}
+          >
+            {tab.label}
+          </Animated.Text>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function BottomNavBar({
   activeTab = 'home',
   onTabChange,
@@ -179,67 +284,15 @@ export function BottomNavBar({
       pointerEvents="box-none"
     >
       <View style={styles.navBar}>
-        {visibleTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-
-          if (tab.id === 'perfil') {
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                style={[
-                  styles.tabItem,
-                  isActive && styles.activeTabItemWithAvatar,
-                ]}
-                activeOpacity={0.7}
-                onPress={() => onTabChange?.(tab.id)}
-                accessibilityRole="button"
-                accessibilityLabel={tab.label}
-                accessibilityState={{ selected: isActive }}
-              >
-                <LinearGradient
-                  colors={['#8FD0FF', '#2B7FFF']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatarCircle}
-                >
-                  <Text style={styles.avatarText}>{userInitial.toUpperCase()}</Text>
-                </LinearGradient>
-
-                {isActive && (
-                  <Text style={styles.activeLabel}>{tab.label}</Text>
-                )}
-              </TouchableOpacity>
-            );
-          }
-
-          const iconColor = isActive ? colors.primary : '#5B6B82';
-          const strokeWidth = isActive ? 2.4 : 2.0;
-
-          return (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.tabItem, isActive && styles.activeTabItem]}
-              activeOpacity={0.7}
-              onPress={() => onTabChange?.(tab.id)}
-              accessibilityRole="button"
-              accessibilityLabel={tab.label}
-              accessibilityState={{ selected: isActive }}
-            >
-              {tab.icon && (
-                <NavIcon
-                  name={tab.icon}
-                  color={iconColor}
-                  size={isActive ? 22 : 22}
-                  strokeWidth={strokeWidth}
-                />
-              )}
-
-              {isActive && (
-                <Text style={styles.activeLabel}>{tab.label}</Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+        {visibleTabs.map((tab) => (
+          <TabItem
+            key={tab.id}
+            tab={tab}
+            isActive={activeTab === tab.id}
+            userInitial={userInitial}
+            onPress={() => onTabChange?.(tab.id)}
+          />
+        ))}
       </View>
     </View>
   );
@@ -272,6 +325,10 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 4,
   },
+  tabSlot: {
+    borderRadius: 26,
+    overflow: 'hidden',
+  },
   tabItem: {
     height: 52,
     minWidth: 48,
@@ -282,15 +339,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   activeTabItem: {
-    backgroundColor: '#E3EEFF',
     paddingHorizontal: 16,
     gap: 8,
   },
   activeTabItemWithAvatar: {
-    backgroundColor: '#E3EEFF',
     paddingLeft: 10,
     paddingRight: 16,
     gap: 8,
+  },
+  tabPressionada: {
+    opacity: 0.7,
+  },
+  // Fundo da aba ativa: entra/sai com fade + escala durante a troca
+  fundoAtivo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 26,
+    backgroundColor: '#E3EEFF',
   },
   activeLabel: {
     fontFamily: 'Sora-Bold',

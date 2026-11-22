@@ -3,6 +3,7 @@ import { Header } from '@/components/ui/Header';
 import { HouseEntranceIllustration } from '@/components/ui/HouseEntranceIllustration';
 import { Input } from '@/components/ui/Input';
 import { colors, typography } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { auth } from '@/firebaseConfig';
 import { entrarMoradiaComCodigo } from '@/services/moradia';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function EntrarMoradiaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { recarregarPerfil } = useSessao();
 
   const [codigo, setCodigo] = useState('');
   const [apelido, setApelido] = useState('');
@@ -45,6 +47,7 @@ export default function EntrarMoradiaScreen() {
 
     try {
       await entrarMoradiaComCodigo(usuarioAtual, codigoFormatado, apelido);
+      await recarregarPerfil();
       router.replace('/');
     } catch (erro: any) {
       setErroCodigo(erro.message || 'Código inválido. Verifique o código e tente novamente.');

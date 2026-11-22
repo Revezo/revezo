@@ -7,11 +7,10 @@
  * - As imagens permanecem como placeholder até a integração da API de fotos.
  */
 
-import { BottomNavBar, BottomNavTab } from '@/components/navigation/BottomNavBar';
 import { colors } from '@/constants/theme';
+import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,7 +26,7 @@ import Svg, { Path } from 'react-native-svg';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { buscarInstanciaPorId, concluirInstancia, docParaInstancia } from '../services/ciclos';
-import { buscarMoradiaPorId, carregarPerfil, PerfilUsuario } from '../services/moradia';
+import { buscarMoradiaPorId } from '../services/moradia';
 import { buscarTarefaPorId } from '../services/tarefas';
 import { InstanciaTarefa, StatusInstancia } from '../types/ciclo';
 import { Tarefa } from '../types/tarefa';
@@ -63,16 +62,69 @@ function criarMockInstancia(usuarioAtualId?: string): InstanciaTarefa {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Cabeçalho: Voltar + Título Central + Status Badge (badge só após carregar)
+// ---------------------------------------------------------------------------
+function CabecalhoDetalhes({ status }: { status?: StatusInstancia }) {
+  return (
+    <View style={styles.topbar}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.dismissTo('/ciclo');
+          }
+        }}
+        activeOpacity={0.7}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Feather name="arrow-left" size={20} color="#0B1B33" />
+      </TouchableOpacity>
+
+      <Text style={styles.topbarTitle}>Detalhes da Tarefa</Text>
+
+      {status ? (
+        <View
+          style={[
+            styles.statusBadge,
+            status === 'concluida'
+              ? styles.statusBadgeConcluida
+              : status === 'atrasada'
+                ? styles.statusBadgeAtrasada
+                : styles.statusBadgePendente,
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusBadgeText,
+              status === 'concluida'
+                ? styles.statusBadgeTextConcluida
+                : status === 'atrasada'
+                  ? styles.statusBadgeTextAtrasada
+                  : styles.statusBadgeTextPendente,
+            ]}
+          >
+            {status === 'concluida' ? 'Finalizado' : status === 'atrasada' ? 'Atrasada' : 'Pendente'}
+          </Text>
+        </View>
+      ) : (
+        // Mantém o título centralizado enquanto o badge não aparece
+        <View style={styles.backButtonPlaceholder} />
+      )}
+    </View>
+  );
+}
+
 export default function DetalhesDaTarefaScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string; instanciaId?: string }>();
   const id = params.id || params.instanciaId;
 
-  const [usuario, setUsuario] = useState<User | null>(null);
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const { usuario, perfil } = useSessao();
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<BottomNavTab>('ciclo');
 
   const [instancia, setInstancia] = useState<InstanciaTarefa | null>(null);
   const [tarefaOrigem, setTarefaOrigem] = useState<Tarefa | null>(null);
@@ -80,23 +132,6 @@ export default function DetalhesDaTarefaScreen() {
     nome: 'Moradia da Luiza',
     endereco: 'Nova Imperatriz',
   });
-
-  // Escuta autenticação
-  useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
-      setUsuario(u);
-      if (u) {
-        try {
-          const p = await carregarPerfil(u);
-          setPerfil(p);
-        } catch {
-          setPerfil(null);
-        }
-      } else {
-        setPerfil(null);
-      }
-    });
-  }, []);
 
   // Carrega dados da tarefa / instância
   useEffect(() => {
@@ -286,15 +321,18 @@ export default function DetalhesDaTarefaScreen() {
     );
   };
 
+  // Enquanto carrega, a tela já aparece com o cabeçalho; só o conteúdo espera
   if (carregando) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.screen}>
+        <View style={[styles.scrollContent, { paddingTop: Math.max(insets.top, 16) + 8 }]}>
+          <CabecalhoDetalhes />
+        </View>
+        <ActivityIndicator color={colors.primary} style={styles.carregandoConteudo} />
       </View>
     );
   }
 
-  const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
   const statusAtual: StatusInstancia = instancia?.status ?? 'pendente';
 
   return (
@@ -306,54 +344,7 @@ export default function DetalhesDaTarefaScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Topbar: Voltar + Título Central + Status Badge */}
-        <View style={styles.topbar}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/ciclo');
-              }
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather name="arrow-left" size={20} color="#0B1B33" />
-          </TouchableOpacity>
-
-          <Text style={styles.topbarTitle}>Detalhes da Tarefa</Text>
-
-          {/* Badge de Status na Topbar */}
-          <View
-            style={[
-              styles.statusBadge,
-              statusAtual === 'concluida'
-                ? styles.statusBadgeConcluida
-                : statusAtual === 'atrasada'
-                  ? styles.statusBadgeAtrasada
-                  : styles.statusBadgePendente,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                statusAtual === 'concluida'
-                  ? styles.statusBadgeTextConcluida
-                  : statusAtual === 'atrasada'
-                    ? styles.statusBadgeTextAtrasada
-                    : styles.statusBadgeTextPendente,
-              ]}
-            >
-              {statusAtual === 'concluida'
-                ? 'Finalizado'
-                : statusAtual === 'atrasada'
-                  ? 'Atrasada'
-                  : 'Pendente'}
-            </Text>
-          </View>
-        </View>
+        <CabecalhoDetalhes status={statusAtual} />
 
         {/* Card Principal de Detalhes da Tarefa */}
         <View style={styles.mainCard}>
@@ -461,27 +452,6 @@ export default function DetalhesDaTarefaScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
-
-      {/* Barra de Navegação Inferior */}
-      <BottomNavBar
-        activeTab={abaAtiva}
-        onTabChange={(tab) => {
-          setAbaAtiva(tab);
-          if (tab === 'home') {
-            router.replace('/');
-          } else if (tab === 'ciclo') {
-            router.push('/ciclo');
-          } else if (tab === 'perfil') {
-            Alert.alert('Perfil', 'A tela de perfil completa será desenvolvida em breve!');
-          } else if (tab === 'trocas' || tab === 'ranking') {
-            Alert.alert(
-              tab.charAt(0).toUpperCase() + tab.slice(1),
-              'Esta funcionalidade será disponibilizada na próxima etapa.',
-            );
-          }
-        }}
-        userInitial={inicialUsuario}
-      />
     </View>
   );
 }
@@ -494,11 +464,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F7FD',
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F7FD',
+  carregandoConteudo: {
+    marginTop: 40,
+  },
+  backButtonPlaceholder: {
+    width: 42,
+    height: 42,
   },
   scrollContent: {
     paddingHorizontal: 20,
