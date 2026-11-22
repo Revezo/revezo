@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { Alert } from 'react-native';
 import { BottomNavTab } from './BottomNavBar';
 
@@ -18,18 +17,4 @@ export function avisarAbaIndisponivel(tab: BottomNavTab) {
     tab.charAt(0).toUpperCase() + tab.slice(1),
     'Esta funcionalidade será disponibilizada na próxima etapa.',
   );
-}
-
-/**
- * Navegação da nav-bar a partir de telas empilhadas por cima das abas
- * (histórico, detalhes...). Volta para as abas já montadas em vez de
- * empilhar uma tela nova, então a troca é instantânea.
- */
-export function navegarParaAba(tab: BottomNavTab) {
-  const rota = ROTA_DA_ABA[tab];
-  if (rota) {
-    router.dismissTo(rota);
-  } else {
-    avisarAbaIndisponivel(tab);
-  }
 }

@@ -1,5 +1,3 @@
-import { BottomNavBar } from '@/components/navigation/BottomNavBar';
-import { navegarParaAba } from '@/components/navigation/navegacaoAbas';
 import { colors } from '@/constants/theme';
 import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
@@ -131,7 +129,6 @@ export default function HistoricoListaScreen() {
 
   if (!usuario) return <Redirect href="/login" />;
 
-  const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -264,8 +261,6 @@ export default function HistoricoListaScreen() {
         )}
       </ScrollView>
 
-      {/* Barra de Navegação Flutuante */}
-      <BottomNavBar activeTab="ciclo" onTabChange={navegarParaAba} userInitial={inicialUsuario} />
     </View>
   );
 }

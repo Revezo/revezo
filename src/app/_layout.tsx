@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { TelaCarregando } from '../components/TelaCarregando';
+import { NavBarGlobal } from '../components/navigation/NavBarGlobal';
 import { colors } from '../constants/theme';
 import { SessaoProvider, useSessao } from '../contexts/SessaoContext';
 
@@ -25,7 +26,9 @@ function AppNavegacao() {
 
   return (
     <View style={styles.flex}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: styles.fundoTelas }} />
+      {/* Nav-bar fixa por cima de todas as telas (aparece só onde faz sentido) */}
+      <NavBarGlobal />
       {/* Splash só na abertura do app; as telas já vão se montando por baixo */}
       {exibindoSplash && (
         <View style={StyleSheet.absoluteFill}>
@@ -62,6 +65,11 @@ export default function Layout() {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  // Evita o "flash" branco enquanto uma tela nova entra
+  fundoTelas: {
+    backgroundColor: colors.background,
   },
   carregandoFontes: {
     flex: 1,

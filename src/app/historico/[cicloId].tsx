@@ -3,8 +3,6 @@
  * Fiel ao segundo mockup de Histórico fornecido pelo usuário.
  */
 
-import { BottomNavBar } from '@/components/navigation/BottomNavBar';
-import { navegarParaAba } from '@/components/navigation/navegacaoAbas';
 import { colors } from '@/constants/theme';
 import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
@@ -121,7 +119,7 @@ export default function HistoricoCicloDetalheScreen() {
   const insets = useSafeAreaInsets();
   const { cicloId } = useLocalSearchParams<{ cicloId: string }>();
 
-  const { usuario, perfil } = useSessao();
+  const { usuario } = useSessao();
   const [carregando, setCarregando] = useState(true);
 
   const [ciclo, setCiclo] = useState<Ciclo | null>(null);
@@ -216,17 +214,7 @@ export default function HistoricoCicloDetalheScreen() {
     return Math.round((concluidas / instancias.length) * 100);
   }, [instancias]);
 
-  if (carregando) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
-
   if (!usuario) return <Redirect href="/login" />;
-
-  const inicialUsuario = (perfil?.apelido || perfil?.nome || 'M').charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -265,16 +253,21 @@ export default function HistoricoCicloDetalheScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Linha de Período e Badge 97% */}
-        <View style={styles.periodoRow}>
-          <Text style={styles.periodoTexto}>
-            {ciclo ? formatarPeriodoSemana(ciclo) : 'Semana Selecionada'}
-          </Text>
+        {/* Enquanto carrega, a tela já aparece com o cabeçalho; só o conteúdo espera */}
+        {carregando && <ActivityIndicator color={colors.primary} style={styles.carregandoConteudo} />}
 
-          <View style={styles.percentBadgePill}>
-            <Text style={styles.percentBadgePillText}>{percentualTotal}%</Text>
+        {/* Linha de Período e Badge 97% */}
+        {!carregando && (
+          <View style={styles.periodoRow}>
+            <Text style={styles.periodoTexto}>
+              {ciclo ? formatarPeriodoSemana(ciclo) : 'Semana Selecionada'}
+            </Text>
+
+            <View style={styles.percentBadgePill}>
+              <Text style={styles.percentBadgePillText}>{percentualTotal}%</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Lista de Dias (Accordion) */}
         <View style={styles.accordionContainer}>
@@ -333,8 +326,6 @@ export default function HistoricoCicloDetalheScreen() {
         </View>
       </ScrollView>
 
-      {/* Barra de Navegação Flutuante */}
-      <BottomNavBar activeTab="ciclo" onTabChange={navegarParaAba} userInitial={inicialUsuario} />
     </View>
   );
 }
@@ -348,11 +339,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F7FD',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F7FD',
+  carregandoConteudo: {
+    marginTop: 40,
   },
   scrollContent: {
     paddingHorizontal: 20,
