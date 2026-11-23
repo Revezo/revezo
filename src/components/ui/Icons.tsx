@@ -23,7 +23,11 @@ export type IconName =
   | 'alert'
   | 'logout'
   | 'pencil'
-  | 'link';
+  | 'link'
+  | 'sliders'
+  | 'info'
+  | 'tasks'
+  | 'crown';
 
 export interface IconProps {
   name: IconName;
@@ -419,6 +423,78 @@ export function AppIcon({
           />
           <Path
             d="M8 12h8"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'user':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={strokeWidth} />
+        </Svg>
+      );
+    case 'sliders':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M4 6h8M16 6h4M4 12h2M10 12h10M4 18h10M18 18h2"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx="14" cy="6" r="2" stroke={color} strokeWidth={strokeWidth} />
+          <Circle cx="8" cy="12" r="2" stroke={color} strokeWidth={strokeWidth} />
+          <Circle cx="16" cy="18" r="2" stroke={color} strokeWidth={strokeWidth} />
+        </Svg>
+      );
+    case 'info':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth={strokeWidth} />
+          <Path
+            d="M12 11v5M12 8h.01"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'tasks':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M9 6h11M9 12h11M9 18h11"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Path
+            d="m4 6 1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'crown':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="m3 8 4 4 5-7 5 7 4-4-2 11H5z"
             stroke={color}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
