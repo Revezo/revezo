@@ -46,6 +46,7 @@ export interface Tarefa extends DadosNovaTarefa {
   proximoSorteioElegivel: Date | null;
   criadaPor: string;
   criadaEm: Date | null;
+  fotos?: string[];
 }
 
 export const PESO_MINIMO = 1;

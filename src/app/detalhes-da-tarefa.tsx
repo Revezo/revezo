@@ -3,18 +3,22 @@
  * Fiel ao design fornecido no mockup.
  *
  * Regras:
- * - O botão "Enviar Comprovação" só deve aparecer se o usuário logado for o mesmo associado à tarefa.
- * - As imagens permanecem como placeholder até a integração da API de fotos.
+ * - O botão "Finalizar Tarefa" só deve aparecer se o usuário logado for o mesmo associado à tarefa.
+ * - Integração completa com Cloudflare R2 (API S3) para upload e visualização das 3 fotos de comprovação.
+ * - Edição de fotos via ícone de lápis com substituição no bucket.
  */
 
 import { colors } from '@/constants/theme';
 import { useSessao } from '@/contexts/SessaoContext';
 import { Feather } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,8 +29,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
-import { buscarInstanciaPorId, concluirInstancia, docParaInstancia } from '../services/ciclos';
+import {
+  buscarInstanciaPorId,
+  concluirInstancia,
+  docParaInstancia,
+  salvarFotosInstancia,
+} from '../services/ciclos';
 import { buscarMoradiaPorId } from '../services/moradia';
+import { obterUrlVisualizacaoFoto, uploadFotoComprovacao } from '../services/r2Storage';
 import { buscarTarefaPorId } from '../services/tarefas';
 import { InstanciaTarefa, StatusInstancia } from '../types/ciclo';
 import { Tarefa } from '../types/tarefa';
@@ -125,6 +135,7 @@ export default function DetalhesDaTarefaScreen() {
   const { usuario, perfil } = useSessao();
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [enviandoFotoIndice, setEnviandoFotoIndice] = useState<number | null>(null);
 
   const [instancia, setInstancia] = useState<InstanciaTarefa | null>(null);
   const [tarefaOrigem, setTarefaOrigem] = useState<Tarefa | null>(null);
@@ -154,7 +165,7 @@ export default function DetalhesDaTarefaScreen() {
                 const qInst = query(
                   collection(db, 'instancias_tarefa'),
                   where('moradiaId', '==', tarefa.moradiaId),
-                  where('tarefaId', '==', tarefa.id)
+                  where('tarefaId', '==', tarefa.id),
                 );
                 const instSnap = await getDocs(qInst);
                 if (!instSnap.empty) {
@@ -180,7 +191,7 @@ export default function DetalhesDaTarefaScreen() {
                   usuarioId: tarefa.criadaPor || auth.currentUser?.uid || '',
                   usuarioNome: auth.currentUser?.displayName || 'Morador',
                   status: 'pendente',
-                  fotos: [],
+                  fotos: tarefa.fotos || [],
                   atribuidaEm: tarefa.criadaEm || new Date(),
                   concluidaEm: null,
                   prazoFim: null,
@@ -263,46 +274,181 @@ export default function DetalhesDaTarefaScreen() {
     return 'janela 18h – 23h';
   }, [tarefaOrigem]);
 
-  // Quantidade de fotos necessárias
+  // Quantidade de fotos necessárias (sempre 3 fotos)
   const peso = instancia?.tarefaPeso ?? 3;
   const fotosNecessarias = 3;
-  const fotosConcluidas = instancia?.fotos?.length ?? 0;
+  const fotosAtuais = instancia?.fotos ?? [];
+  const fotosConcluidas = fotosAtuais.filter((f) => Boolean(f)).length;
 
-  // Ação ao pressionar um placeholder de foto
-  const handlePressionarFoto = (numeroFoto: number) => {
+  // URIs locais para exibição imediata (antes do R2 ser consultado)
+  const [fotosUriLocais, setFotosUriLocais] = useState<(string | null)[]>([null, null, null]);
+
+  // Modal de visualização em tela cheia (ativo após tarefa concluída)
+  const [fotoVisualizando, setFotoVisualizando] = useState<string | null>(null);
+
+  // Capturar foto da câmera ou escolher da galeria
+  const capturarFoto = async (indice: number, origem: 'camera' | 'galeria') => {
+    try {
+      let result: ImagePicker.ImagePickerResult;
+
+      if (origem === 'camera') {
+        const permissao = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permissao.granted) {
+          Alert.alert(
+            'Permissão necessária',
+            'É necessário permitir o acesso à câmera para tirar fotos de comprovação.',
+          );
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
+      } else {
+        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissao.granted) {
+          Alert.alert(
+            'Permissão necessária',
+            'É necessário permitir o acesso à galeria para anexar fotos de comprovação.',
+          );
+          return;
+        }
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
+      }
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const localUri = result.assets[0].uri;
+
+      // Exibe imediatamente via URI local enquanto sobe para o R2
+      setFotosUriLocais((prev) => {
+        const copia = [...prev];
+        copia[indice] = localUri;
+        return copia;
+      });
+
+      setEnviandoFotoIndice(indice);
+
+      // Upload para o bucket "comprovacoes" no Cloudflare R2 via SigV4 S3
+      const { key } = await uploadFotoComprovacao(localUri, {
+        moradiaId: instancia?.moradiaId,
+        tarefaId: instancia?.tarefaId || instancia?.id || id || 'geral',
+        instanciaId: instancia?.id,
+        indice,
+      });
+
+      // Atualiza o array de fotos (chaves R2) no estado e no Firestore
+      const novasFotos = [...(instancia?.fotos || [])];
+      while (novasFotos.length <= indice) {
+        novasFotos.push('');
+      }
+      novasFotos[indice] = key;
+
+      if (instancia) {
+        await salvarFotosInstancia(instancia.id, novasFotos, instancia.tarefaId);
+        setInstancia((prev) => (prev ? { ...prev, fotos: novasFotos } : null));
+        // Remove a URI local: a partir daqui, a URL assinada do R2 será usada
+        setFotosUriLocais((prev) => {
+          const copia = [...prev];
+          copia[indice] = null;
+          return copia;
+        });
+      }
+    } catch (err: any) {
+      // Em caso de erro, remove a preview local
+      setFotosUriLocais((prev) => {
+        const copia = [...prev];
+        copia[indice] = null;
+        return copia;
+      });
+      console.error('Erro no upload de foto para R2:', err);
+      Alert.alert(
+        'Erro ao enviar foto',
+        err?.message || 'Falha ao salvar a imagem no Cloudflare R2.',
+      );
+    } finally {
+      setEnviandoFotoIndice(null);
+    }
+  };
+
+  // Ação ao pressionar um placeholder de foto (visualizar ou adicionar/substituir)
+  const handlePressionarFoto = (indice: number, uriFoto?: string) => {
+    const fotoKey = instancia?.fotos?.[indice];
+    const uriLocal = fotosUriLocais[indice];
+    const urlFinal = uriFoto || uriLocal || (fotoKey ? obterUrlVisualizacaoFoto(fotoKey) : null);
+
+    // Quando a tarefa já está concluída: visualização em tela cheia se houver foto
+    if (statusAtual === 'concluida') {
+      if (urlFinal) {
+        setFotoVisualizando(urlFinal);
+      }
+      return;
+    }
+
+    // Enquanto a tarefa não estiver concluída: apenas o morador responsável pode enviar/alterar
+    if (!ehUsuarioAssociado) {
+      Alert.alert(
+        'Acesso restrito',
+        'Apenas o morador responsável pode enviar ou alterar fotos desta tarefa.',
+      );
+      return;
+    }
+
+    const temFoto = Boolean(instancia?.fotos?.[indice]);
     Alert.alert(
-      `Foto ${numeroFoto}`,
-      'A funcionalidade de envio e captura de fotos será integrada com a API em breve. ' +
-        'No momento as fotos estão como placeholder.',
-      [{ text: 'Entendido' }],
+      temFoto ? `Substituir Foto ${indice + 1}` : `Adicionar Foto ${indice + 1}`,
+      'Escolha como deseja obter a foto:',
+      [
+        {
+          text: 'Tirar Foto',
+          onPress: () => capturarFoto(indice, 'camera'),
+        },
+        {
+          text: 'Escolher da Galeria',
+          onPress: () => capturarFoto(indice, 'galeria'),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ],
     );
   };
 
-  // Enviar comprovação
-  const handleEnviarComprovacao = async () => {
+  // Finalizar tarefa (botão sempre acessível para o usuário responsável)
+  const handleFinalizarTarefa = async () => {
     if (!instancia) return;
 
     if (instancia.status === 'concluida') {
-      Alert.alert('Tarefa Concluída', 'Esta comprovação já foi enviada e a tarefa está finalizada.');
+      Alert.alert('Tarefa Finalizada', 'Esta tarefa já foi concluída anteriormente.');
       return;
     }
 
     Alert.alert(
-      'Enviar Comprovação',
-      'As fotos estão em modo placeholder (aguardando API). ' +
-        'Deseja registrar a comprovação e marcar esta tarefa como finalizada?',
+      'Finalizar Tarefa',
+      'Deseja registrar e marcar esta tarefa como finalizada?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Confirmar Envio',
+          text: 'Confirmar',
           onPress: async () => {
             try {
               setEnviando(true);
+              const fotosAtuaisFinal = instancia.fotos || [];
               if (instancia.id && !instancia.id.startsWith('mock-')) {
-                await concluirInstancia(instancia.id, []);
+                await concluirInstancia(instancia.id, fotosAtuaisFinal);
               }
               setInstancia((prev) => (prev ? { ...prev, status: 'concluida' } : null));
-              Alert.alert('Sucesso!', 'Comprovação registrada com sucesso.', [
+              Alert.alert('Sucesso!', 'Tarefa finalizada com sucesso.', [
                 {
                   text: 'OK',
                   onPress: () => {
@@ -311,7 +457,7 @@ export default function DetalhesDaTarefaScreen() {
                 },
               ]);
             } catch (err: any) {
-              Alert.alert('Erro ao enviar comprovação', err?.message || 'Tente novamente.');
+              Alert.alert('Erro ao finalizar tarefa', err?.message || 'Tente novamente.');
             } finally {
               setEnviando(false);
             }
@@ -390,19 +536,55 @@ export default function DetalhesDaTarefaScreen() {
           </Text>
         </View>
 
-        {/* Grid de 3 Fotos Placeholder */}
+        {/* Grid de 3 Fotos (Placeholders / Imagens com Lápis de Edição) */}
         <View style={styles.fotosGrid}>
-          {[1, 2, 3].map((num) => (
-            <TouchableOpacity
-              key={num}
-              style={styles.fotoPlaceholderCard}
-              activeOpacity={0.7}
-              onPress={() => handlePressionarFoto(num)}
-            >
-              <Feather name="camera" size={26} color="#8A98AC" />
-              <Text style={styles.fotoPlaceholderText}>Foto {num}</Text>
-            </TouchableOpacity>
-          ))}
+          {[0, 1, 2].map((idx) => {
+            const fotoKey = instancia?.fotos?.[idx];
+            const temFoto = Boolean(fotoKey);
+            const estaEnviando = enviandoFotoIndice === idx;
+            const uriLocal = fotosUriLocais[idx];
+            // Prioriza: (1) URI local para preview imediato, (2) URL assinada do R2 se já persistida
+            const fotoUri = uriLocal || (temFoto ? obterUrlVisualizacaoFoto(fotoKey!) : '');
+            const temImagem = Boolean(fotoUri);
+            const tarefaConcluida = statusAtual === 'concluida';
+
+            return (
+              <TouchableOpacity
+                key={idx}
+                style={styles.fotoCard}
+                activeOpacity={0.8}
+                onPress={() => handlePressionarFoto(idx, fotoUri)}
+                disabled={estaEnviando || (tarefaConcluida && !temImagem)}
+              >
+                {estaEnviando ? (
+                  <View style={styles.fotoLoadingContainer}>
+                    <ActivityIndicator size="small" color="#2B7FFF" />
+                    <Text style={styles.fotoLoadingText}>Enviando...</Text>
+                  </View>
+                ) : temImagem ? (
+                  <>
+                    <Image
+                      source={{ uri: fotoUri }}
+                      style={styles.fotoThumb}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                    {/* Lápis de edição só aparece enquanto a tarefa não foi concluída */}
+                    {!tarefaConcluida && (
+                      <View style={styles.editBadge}>
+                        <Feather name="edit-2" size={12} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Feather name="camera" size={26} color="#8A98AC" />
+                    <Text style={styles.fotoPlaceholderText}>Foto {idx + 1}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Banner Informativo de Contestação */}
@@ -431,27 +613,59 @@ export default function DetalhesDaTarefaScreen() {
           </Text>
         </View>
 
-        {/* Botão Enviar Comprovação: SÓ APARECE SE O USUÁRIO LOGADO FOR O MESMO ASSOCIADO À TASK */}
-        {ehUsuarioAssociado && (
+        {/* Botão Finalizar Tarefa: SÓ APARECE SE O USUÁRIO LOGADO FOR O MESMO ASSOCIADO À TASK
+            E A TAREFA AINDA NÃO FOI CONCLUÍDA */}
+        {ehUsuarioAssociado && statusAtual !== 'concluida' && (
           <TouchableOpacity
-            style={[
-              styles.botaoEnviar,
-              (enviando || statusAtual === 'concluida') && styles.botaoEnviarDesabilitado,
-            ]}
+            style={[styles.botaoEnviar, enviando && styles.botaoEnviarDesabilitado]}
             activeOpacity={0.85}
-            onPress={handleEnviarComprovacao}
-            disabled={enviando || statusAtual === 'concluida'}
+            onPress={handleFinalizarTarefa}
+            disabled={enviando}
           >
             {enviando ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.botaoEnviarTexto}>
-                {statusAtual === 'concluida' ? 'Comprovação Enviada' : 'Enviar Comprovação'}
-              </Text>
+              <Text style={styles.botaoEnviarTexto}>Finalizar Tarefa</Text>
             )}
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      {/* Modal de visualização de foto em tela cheia (apenas após tarefa concluída) */}
+      <Modal
+        visible={fotoVisualizando !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setFotoVisualizando(null)}
+      >
+        <View style={styles.modalOverlay}>
+          {/* Tocar no fundo fecha o modal */}
+          <TouchableOpacity
+            style={styles.modalBackdropDismiss}
+            activeOpacity={1}
+            onPress={() => setFotoVisualizando(null)}
+          />
+
+          {/* Botão fechar */}
+          <TouchableOpacity
+            style={[styles.modalFechar, { top: Math.max(insets.top + 12, 48) }]}
+            onPress={() => setFotoVisualizando(null)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
+            <Feather name="x" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Imagem em tela cheia */}
+          <Image
+            source={{ uri: fotoVisualizando || '' }}
+            style={styles.modalImagem}
+            contentFit="contain"
+            transition={200}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -634,13 +848,49 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  fotoPlaceholderCard: {
+  fotoCard: {
     flex: 1,
     height: 108,
     borderRadius: 20,
     backgroundColor: '#EEF2F6',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  fotoThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#2B7FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  fotoLoadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  fotoLoadingText: {
+    fontFamily: 'Manrope-SemiBold',
+    fontSize: 11,
+    color: '#2B7FFF',
+    marginTop: 4,
   },
   fotoPlaceholderText: {
     fontFamily: 'Manrope-SemiBold',
@@ -673,7 +923,7 @@ const styles = StyleSheet.create({
     color: '#8A98AC',
   },
 
-  // Botão Enviar Comprovação
+  // Botão Finalizar Tarefa
   botaoEnviar: {
     backgroundColor: '#2B7FFF',
     height: 54,
@@ -693,5 +943,36 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Bold',
     fontSize: 16,
     color: '#FFFFFF',
+  },
+
+  // Modal de visualização de foto em tela cheia
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBackdropDismiss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalFechar: {
+    position: 'absolute',
+    top: 52,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  modalImagem: {
+    width: '100%',
+    height: '80%',
   },
 });
