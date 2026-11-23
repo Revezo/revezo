@@ -19,7 +19,10 @@ export type Papel = 'admin' | 'morador';
 export interface PerfilUsuario {
   uid: string;
   email: string | null;
+  /** Nome exibido no app: o apelido da moradia ou, sem apelido, o nome de cadastro. */
   nome: string;
+  /** Nome completo informado no cadastro (independe da moradia). */
+  nomeCadastro: string;
   apelido?: string;
   moradiaId: string;
   moradiaNome: string;
@@ -61,6 +64,7 @@ export async function carregarPerfil(usuario: User): Promise<PerfilUsuario | nul
     uid: usuario.uid,
     email: usuario.email,
     nome: nomeFinal,
+    nomeCadastro: nomeCadastrado || '',
     apelido: apelidoMoradia || undefined,
     moradiaId,
     moradiaNome: moradiaSnap.exists() ? moradiaSnap.data().nome ?? 'Moradia' : 'Moradia',
@@ -153,6 +157,7 @@ export async function criarMoradiaComoAdmin(
     uid: usuario.uid,
     email: usuario.email,
     nome: nomeUsuario,
+    nomeCadastro: nomeCadastrado || nomeUsuario,
     apelido: apelidoInformado || undefined,
     moradiaId: moradiaRef.id,
     moradiaNome: nome,
@@ -232,6 +237,7 @@ export async function entrarMoradiaComCodigo(
     uid: usuario.uid,
     email: usuario.email,
     nome: nomeUsuario,
+    nomeCadastro: nomeCadastrado || nomeUsuario,
     apelido: apelidoInformado || undefined,
     moradiaId,
     moradiaNome: dadosMoradia.nome ?? 'Moradia',
