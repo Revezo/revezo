@@ -1,5 +1,5 @@
 /**
- * Abas principais do app (Home e Ciclo).
+ * Abas principais do app (Home, Ciclo e Perfil).
  *
  * As telas ficam montadas depois da primeira visita, então trocar de aba
  * é instantâneo, sem recarregar a tela nem animação de push.
@@ -15,6 +15,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false, animation: 'none' }} tabBar={() => null}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="ciclo" />
+      <Tabs.Screen name="perfil" />
     </Tabs>
   );
 }

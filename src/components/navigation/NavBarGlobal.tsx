@@ -15,6 +15,7 @@ import { avisarAbaIndisponivel, ROTA_DA_ABA } from './navegacaoAbas';
 const ABA_POR_ROTA: Record<string, BottomNavTab> = {
   '/': 'home',
   '/ciclo': 'ciclo',
+  '/perfil': 'perfil',
 };
 
 /** Telas empilhadas que também exibem a nav-bar, e a aba que representam (se fixa). */
