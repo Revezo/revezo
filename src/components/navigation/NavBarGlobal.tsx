@@ -15,6 +15,7 @@ import { avisarAbaIndisponivel, ROTA_DA_ABA } from './navegacaoAbas';
 const ABA_POR_ROTA: Record<string, BottomNavTab> = {
   '/': 'home',
   '/ciclo': 'ciclo',
+  '/ranking': 'ranking',
   '/perfil': 'perfil',
 };
 

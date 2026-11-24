@@ -141,6 +141,7 @@ export async function criarMoradiaComoAdmin(
     entrouEm: serverTimestamp(),
   });
 
+  const jaTemPontos = usuarioSnap.exists() && typeof usuarioSnap.data().pontosAcumulados === 'number';
   await setDoc(
     doc(db, 'usuarios', usuario.uid),
     {
@@ -148,6 +149,7 @@ export async function criarMoradiaComoAdmin(
       nome: nomeCadastrado || nomeUsuario,
       moradiaId: moradiaRef.id,
       papel: 'admin',
+      ...(jaTemPontos ? {} : { pontosAcumulados: 0 }),
       atualizadoEm: serverTimestamp(),
     },
     { merge: true },
@@ -221,6 +223,7 @@ export async function entrarMoradiaComCodigo(
   );
 
   // 3. Atualiza o perfil e moradia ativa do usuário
+  const jaTemPontos = usuarioSnap.exists() && typeof usuarioSnap.data().pontosAcumulados === 'number';
   await setDoc(
     doc(db, 'usuarios', usuario.uid),
     {
@@ -228,6 +231,7 @@ export async function entrarMoradiaComCodigo(
       nome: nomeCadastrado || nomeUsuario,
       moradiaId,
       papel,
+      ...(jaTemPontos ? {} : { pontosAcumulados: 0 }),
       atualizadoEm: serverTimestamp(),
     },
     { merge: true },

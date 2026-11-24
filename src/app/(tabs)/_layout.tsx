@@ -15,6 +15,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false, animation: 'none' }} tabBar={() => null}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="ciclo" />
+      <Tabs.Screen name="ranking" />
       <Tabs.Screen name="perfil" />
     </Tabs>
   );

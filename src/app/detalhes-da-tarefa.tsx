@@ -445,7 +445,7 @@ export default function DetalhesDaTarefaScreen() {
               setEnviando(true);
               const fotosAtuaisFinal = instancia.fotos || [];
               if (instancia.id && !instancia.id.startsWith('mock-')) {
-                await concluirInstancia(instancia.id, fotosAtuaisFinal);
+                await concluirInstancia(instancia.id, fotosAtuaisFinal, instancia.tarefaId);
               }
               setInstancia((prev) => (prev ? { ...prev, status: 'concluida' } : null));
               Alert.alert('Sucesso!', 'Tarefa finalizada com sucesso.', [

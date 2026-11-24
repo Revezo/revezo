@@ -15,12 +15,13 @@ import {
   getDocs,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import {
   AtribuicaoCiclo,
   Ciclo,
@@ -379,36 +380,100 @@ export async function concluirInstancia(
   fotos: string[] = [],
   tarefaId?: string,
 ): Promise<void> {
-  // 1. Se existir em instancias_tarefa, conclui
+  let pontosCreditados = false;
+  const uidLogado = auth.currentUser?.uid;
+
+  // 1. Se existir em instancias_tarefa, conclui e soma o peso nos pontos acumulados do usuário
   if (instanciaId && !instanciaId.startsWith('mock-')) {
     try {
       const refInst = doc(db, 'instancias_tarefa', instanciaId);
-      const snapInst = await getDoc(refInst);
-      if (snapInst.exists()) {
-        await updateDoc(refInst, {
+      await runTransaction(db, async (transaction) => {
+        const snapInst = await transaction.get(refInst);
+        if (!snapInst.exists()) return;
+
+        const dadosInst = snapInst.data();
+        const jaConcluida = dadosInst.status === 'concluida';
+        const usuarioId: string | undefined = dadosInst.usuarioId;
+        const peso = Math.max(0, Number(dadosInst.tarefaPeso ?? 1));
+
+        let refUsuario = null;
+        let pontosAtuais = 0;
+        const deveSomarPontos =
+          !jaConcluida && Boolean(usuarioId) && usuarioId === uidLogado && peso > 0;
+
+        if (deveSomarPontos && usuarioId) {
+          refUsuario = doc(db, 'usuarios', usuarioId);
+          const snapUsuario = await transaction.get(refUsuario);
+          pontosAtuais = snapUsuario.exists()
+            ? Number(snapUsuario.data().pontosAcumulados ?? 0)
+            : 0;
+        }
+
+        transaction.update(refInst, {
           status: 'concluida' as StatusInstancia,
           concluidaEm: serverTimestamp(),
           fotos,
         });
-      }
+
+        if (deveSomarPontos && refUsuario) {
+          transaction.set(
+            refUsuario,
+            {
+              pontosAcumulados: pontosAtuais + peso,
+              atualizadoEm: serverTimestamp(),
+            },
+            { merge: true },
+          );
+          pontosCreditados = true;
+        }
+      });
     } catch (e) {
       console.warn('Erro ao concluir instancias_tarefa:', e);
     }
   }
 
-  // 2. Se corresponder a tarefas, conclui tambÃ©m na coleÃ§Ã£o tarefas
+  // 2. Se corresponder a tarefas, conclui também na coleção tarefas
   const idTarefa = tarefaId || instanciaId;
   if (idTarefa && !idTarefa.startsWith('mock-')) {
     try {
       const refTarefa = doc(db, 'tarefas', idTarefa);
-      const snapTarefa = await getDoc(refTarefa);
-      if (snapTarefa.exists()) {
-        await updateDoc(refTarefa, {
+      await runTransaction(db, async (transaction) => {
+        const snapTarefa = await transaction.get(refTarefa);
+        if (!snapTarefa.exists()) return;
+
+        const dadosTarefa = snapTarefa.data();
+        const jaConcluida = dadosTarefa.status === 'concluida';
+        const peso = Math.max(0, Number(dadosTarefa.pesoDificuldade ?? 1));
+        const deveSomarFallback =
+          !pontosCreditados && !jaConcluida && Boolean(uidLogado) && peso > 0;
+
+        let refUsuario = null;
+        let pontosAtuais = 0;
+        if (deveSomarFallback && uidLogado) {
+          refUsuario = doc(db, 'usuarios', uidLogado);
+          const snapUsuario = await transaction.get(refUsuario);
+          pontosAtuais = snapUsuario.exists()
+            ? Number(snapUsuario.data().pontosAcumulados ?? 0)
+            : 0;
+        }
+
+        transaction.update(refTarefa, {
           status: 'concluida',
           concluidaEm: serverTimestamp(),
           fotos,
         });
-      }
+
+        if (deveSomarFallback && refUsuario) {
+          transaction.set(
+            refUsuario,
+            {
+              pontosAcumulados: pontosAtuais + peso,
+              atualizadoEm: serverTimestamp(),
+            },
+            { merge: true },
+          );
+        }
+      });
     } catch (e) {
       console.warn('Erro ao concluir tarefas:', e);
     }
