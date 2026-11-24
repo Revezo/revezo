@@ -1,5 +1,6 @@
+import { Image as ExpoImage } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cores, fontes, medidas } from './onboarding/tema';
 
@@ -31,11 +32,14 @@ export function TelaCarregando({ mensagem = 'Carregando sua moradia...' }: Props
   const rotacao = giro.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/onboarding/fundo-carregando.png')}
-      style={styles.fundo}
-      resizeMode="cover"
-    >
+    // View + Image absolutamente posicionada (substitui ImageBackground, que está deprecated)
+    <View style={styles.fundo}>
+      <ExpoImage
+        source={require('../../assets/images/onboarding/fundo-carregando.png')}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+      />
+
       <View style={styles.centro}>
         <Image
           source={require('../../assets/images/onboarding/logo-revezo.png')}
@@ -56,7 +60,7 @@ export function TelaCarregando({ mensagem = 'Carregando sua moradia...' }: Props
           {mensagem}
         </Text>
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 

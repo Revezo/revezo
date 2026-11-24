@@ -80,8 +80,8 @@ export default function HomeScreen() {
   };
 
   // Fotos necessárias por tarefa (baseado no peso ou mínimo 1)
-  const getFotosNecessarias = (t: Tarefa) => Math.max(1, Math.min(3, Math.ceil(t.pesoDificuldade / 2)));
-  const getFotosConcluidas = (t: Tarefa) => fotosTarefas[t.id] ?? 0;
+  const getFotosNecessarias = (_t: Tarefa) => 3;
+  const getFotosConcluidas = (t: Tarefa) => t.fotos?.length ?? fotosTarefas[t.id] ?? 0;
   const isTarefaConcluida = (t: Tarefa) => getFotosConcluidas(t) >= getFotosNecessarias(t);
 
   // Cálculo de dias restantes para o sorteio

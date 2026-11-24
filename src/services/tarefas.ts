@@ -108,6 +108,7 @@ export async function listarTarefas(moradiaId: string): Promise<Tarefa[]> {
         proximoSorteioElegivel: dados.proximoSorteioElegivel?.toDate?.() ?? null,
         criadaPor: dados.criadaPor ?? '',
         criadaEm: dados.criadaEm?.toDate?.() ?? null,
+        fotos: dados.fotos ?? [],
         descricao: dados.descricao ?? undefined,
       } as Tarefa;
     })
@@ -132,6 +133,7 @@ export async function buscarTarefaPorId(id: string): Promise<Tarefa | null> {
     proximoSorteioElegivel: dados.proximoSorteioElegivel?.toDate?.() ?? null,
     criadaPor: dados.criadaPor ?? '',
     criadaEm: dados.criadaEm?.toDate?.() ?? null,
+    fotos: dados.fotos ?? [],
     descricao: dados.descricao ?? undefined,
   } as Tarefa;
 }

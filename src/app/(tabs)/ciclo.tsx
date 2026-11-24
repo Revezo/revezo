@@ -94,8 +94,8 @@ function TarefaCardItem({
   ehUsuarioLogado: boolean;
 }) {
   const atrasada = verificarSeAtrasada(instancia);
-  const fotosNecessarias = Math.max(1, Math.min(3, Math.ceil(instancia.tarefaPeso / 2)));
-  const fotosConcluidas = instancia.fotos.length;
+  const fotosNecessarias = 3;
+  const fotosConcluidas = instancia.fotos?.length ?? 0;
   const horarioTexto = formatarHorarioExecucao(instancia);
 
   // Nome exibido do responsável (se for o próprio usuário, indica "(Você)")
