@@ -15,12 +15,22 @@ import { avisarAbaIndisponivel, ROTA_DA_ABA } from './navegacaoAbas';
 const ABA_POR_ROTA: Record<string, BottomNavTab> = {
   '/': 'home',
   '/ciclo': 'ciclo',
+  '/trocas': 'trocas',
   '/perfil': 'perfil',
 };
+
+const ROTAS_TROCAS = [
+  '/nova-proposta',
+  '/confirmar-troca',
+  '/recusar-troca',
+  '/troca-confirmada',
+  '/proposta-enviada',
+];
 
 /** Telas empilhadas que também exibem a nav-bar, e a aba que representam (se fixa). */
 function abaDaTelaEmpilhada(pathname: string): BottomNavTab | null | undefined {
   if (pathname === '/historico' || pathname.startsWith('/historico/')) return 'ciclo';
+  if (ROTAS_TROCAS.includes(pathname)) return 'trocas';
   // Detalhes pode ser aberto pela Home ou pelo Ciclo: mantém a aba de onde o usuário veio
   if (pathname === '/detalhes-da-tarefa') return null;
   return undefined; // tela sem nav-bar

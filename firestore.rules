@@ -84,8 +84,32 @@ service cloud.firestore {
 
       // O próprio morador pode atualizar SUA instância (marcar como concluída, adicionar fotos)
       // Admins também podem atualizar qualquer instância
+      // Durante uma troca pendente, o destinatário pode assumir a instância oferecida pelo proponente
       allow update: if ehMembroDaMoradia(resource.data.moradiaId) &&
-        (request.auth.uid == resource.data.usuarioId || ehAdminDaMoradia(resource.data.moradiaId));
+        (request.auth.uid == resource.data.usuarioId ||
+         ehAdminDaMoradia(resource.data.moradiaId) ||
+         (request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['usuarioId', 'usuarioNome', 'ultimaTrocaId']) &&
+          request.resource.data.usuarioId == request.auth.uid &&
+          request.resource.data.ultimaTrocaId is string &&
+          get(/databases/$(database)/documents/trocas/$(request.resource.data.ultimaTrocaId)).data.destinatarioId == request.auth.uid &&
+          get(/databases/$(database)/documents/trocas/$(request.resource.data.ultimaTrocaId)).data.instanciaOrigemId == instanciaId &&
+          get(/databases/$(database)/documents/trocas/$(request.resource.data.ultimaTrocaId)).data.status == 'pendente'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Trocas de Tarefas (propostas cegas entre moradores no ciclo atual)
+    // -------------------------------------------------------------------------
+
+    match /trocas/{trocaId} {
+      allow read: if ehMembroDaMoradia(resource.data.moradiaId);
+      allow create: if ehMembroDaMoradia(request.resource.data.moradiaId) &&
+        request.auth.uid == request.resource.data.proponenteId;
+      allow update: if ehMembroDaMoradia(resource.data.moradiaId) &&
+        (request.auth.uid == resource.data.destinatarioId ||
+         request.auth.uid == resource.data.proponenteId ||
+         ehAdminDaMoradia(resource.data.moradiaId));
+      allow delete: if ehAdminDaMoradia(resource.data.moradiaId);
     }
   }
 }

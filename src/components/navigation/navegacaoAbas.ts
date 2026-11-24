@@ -2,9 +2,10 @@ import { Alert } from 'react-native';
 import { BottomNavTab } from './BottomNavBar';
 
 /** Abas que já possuem tela própria dentro do grupo `(tabs)`. */
-export const ROTA_DA_ABA: Partial<Record<BottomNavTab, '/' | '/ciclo' | '/perfil'>> = {
+export const ROTA_DA_ABA: Partial<Record<BottomNavTab, '/' | '/ciclo' | '/trocas' | '/perfil'>> = {
   home: '/',
   ciclo: '/ciclo',
+  trocas: '/trocas',
   perfil: '/perfil',
 };
 
