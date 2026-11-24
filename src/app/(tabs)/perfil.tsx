@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import React, { useState } from 'react';
 import {
@@ -99,6 +99,8 @@ export default function PerfilScreen() {
   const nomeExibicao = (perfil.apelido || perfil.nome || 'Morador').trim();
   const inicial = nomeExibicao.charAt(0).toUpperCase();
 
+  const abrirMeuPerfil = () => router.push('/meu-perfil');
+
   const confirmarSaida = () => {
     Alert.alert('Sair da conta', 'Deseja mesmo sair da sua conta?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -156,7 +158,7 @@ export default function PerfilScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.btnWhite} activeOpacity={0.85} onPress={() => emBreve('Editar perfil')}>
+          <TouchableOpacity style={styles.btnWhite} activeOpacity={0.85} onPress={abrirMeuPerfil}>
             <AppIcon name="pencil" size={16} color={colors.primary} strokeWidth={2.4} />
             <Text style={styles.btnWhiteText}>Editar perfil</Text>
           </TouchableOpacity>
@@ -165,7 +167,7 @@ export default function PerfilScreen() {
         {/* Conta */}
         <Text style={[styles.groupLabel, styles.groupLabelPrimeiro]}>CONTA</Text>
         <View style={styles.group}>
-          <Linha primeira icone="user" tom="blue" titulo="Meu perfil" />
+          <Linha primeira icone="user" tom="blue" titulo="Meu perfil" onPress={abrirMeuPerfil} />
           <Linha icone="sliders" tom="violet" titulo="Configurações" />
           <Linha icone="bell" tom="amber" titulo="Notificações" />
           <Linha icone="info" tom="green" titulo="Sobre o app" />

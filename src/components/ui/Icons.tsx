@@ -27,7 +27,9 @@ export type IconName =
   | 'sliders'
   | 'info'
   | 'tasks'
-  | 'crown';
+  | 'crown'
+  | 'camera'
+  | 'arrowLeft';
 
 export interface IconProps {
   name: IconName;
@@ -495,6 +497,31 @@ export function AppIcon({
         <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
           <Path
             d="m3 8 4 4 5-7 5 7 4-4-2 11H5z"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case 'camera':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx="12" cy="13.5" r="3.5" stroke={color} strokeWidth={strokeWidth} />
+        </Svg>
+      );
+    case 'arrowLeft':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M19 12H5M11 6l-6 6 6 6"
             stroke={color}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
