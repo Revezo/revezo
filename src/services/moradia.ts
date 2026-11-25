@@ -138,10 +138,10 @@ export async function criarMoradiaComoAdmin(
     papel: 'admin',
     apelido: apelidoInformado,
     email: usuario.email ?? null,
+    pontosAcumulados: 0,
     entrouEm: serverTimestamp(),
   });
 
-  const jaTemPontos = usuarioSnap.exists() && typeof usuarioSnap.data().pontosAcumulados === 'number';
   await setDoc(
     doc(db, 'usuarios', usuario.uid),
     {
@@ -149,7 +149,6 @@ export async function criarMoradiaComoAdmin(
       nome: nomeCadastrado || nomeUsuario,
       moradiaId: moradiaRef.id,
       papel: 'admin',
-      ...(jaTemPontos ? {} : { pontosAcumulados: 0 }),
       atualizadoEm: serverTimestamp(),
     },
     { merge: true },
@@ -210,20 +209,25 @@ export async function entrarMoradiaComCodigo(
     membrosIds: arrayUnion(usuario.uid),
   });
 
-  // 2. Registra o membro na subcoleção de membros
+  // 2. Registra o membro na subcoleção de membros (preserva pontos caso já tenha feito parte)
+  const membroRef = doc(db, 'moradias', moradiaId, 'membros', usuario.uid);
+  const membroExistente = await getDoc(membroRef);
+  const jaTemPontosNaMoradia =
+    membroExistente.exists() && typeof membroExistente.data().pontosAcumulados === 'number';
+
   await setDoc(
-    doc(db, 'moradias', moradiaId, 'membros', usuario.uid),
+    membroRef,
     {
       papel,
       apelido: apelidoInformado,
       email: usuario.email ?? null,
+      ...(jaTemPontosNaMoradia ? {} : { pontosAcumulados: 0 }),
       entrouEm: serverTimestamp(),
     },
     { merge: true },
   );
 
   // 3. Atualiza o perfil e moradia ativa do usuário
-  const jaTemPontos = usuarioSnap.exists() && typeof usuarioSnap.data().pontosAcumulados === 'number';
   await setDoc(
     doc(db, 'usuarios', usuario.uid),
     {
@@ -231,7 +235,6 @@ export async function entrarMoradiaComCodigo(
       nome: nomeCadastrado || nomeUsuario,
       moradiaId,
       papel,
-      ...(jaTemPontos ? {} : { pontosAcumulados: 0 }),
       atualizadoEm: serverTimestamp(),
     },
     { merge: true },

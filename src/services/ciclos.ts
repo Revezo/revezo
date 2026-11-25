@@ -383,7 +383,7 @@ export async function concluirInstancia(
   let pontosCreditados = false;
   const uidLogado = auth.currentUser?.uid;
 
-  // 1. Se existir em instancias_tarefa, conclui e soma o peso nos pontos acumulados do usuário
+  // 1. Se existir em instancias_tarefa, conclui e soma o peso nos pontos da moradia do usuário
   if (instanciaId && !instanciaId.startsWith('mock-')) {
     try {
       const refInst = doc(db, 'instancias_tarefa', instanciaId);
@@ -393,19 +393,24 @@ export async function concluirInstancia(
 
         const dadosInst = snapInst.data();
         const jaConcluida = dadosInst.status === 'concluida';
+        const moradiaId: string | undefined = dadosInst.moradiaId;
         const usuarioId: string | undefined = dadosInst.usuarioId;
         const peso = Math.max(0, Number(dadosInst.tarefaPeso ?? 1));
 
-        let refUsuario = null;
+        let refMembro = null;
         let pontosAtuais = 0;
         const deveSomarPontos =
-          !jaConcluida && Boolean(usuarioId) && usuarioId === uidLogado && peso > 0;
+          !jaConcluida &&
+          Boolean(moradiaId) &&
+          Boolean(usuarioId) &&
+          Boolean(uidLogado) &&
+          peso > 0;
 
-        if (deveSomarPontos && usuarioId) {
-          refUsuario = doc(db, 'usuarios', usuarioId);
-          const snapUsuario = await transaction.get(refUsuario);
-          pontosAtuais = snapUsuario.exists()
-            ? Number(snapUsuario.data().pontosAcumulados ?? 0)
+        if (deveSomarPontos && moradiaId && usuarioId) {
+          refMembro = doc(db, 'moradias', moradiaId, 'membros', usuarioId);
+          const snapMembro = await transaction.get(refMembro);
+          pontosAtuais = snapMembro.exists()
+            ? Number(snapMembro.data().pontosAcumulados ?? 0)
             : 0;
         }
 
@@ -415,9 +420,9 @@ export async function concluirInstancia(
           fotos,
         });
 
-        if (deveSomarPontos && refUsuario) {
+        if (deveSomarPontos && refMembro) {
           transaction.set(
-            refUsuario,
+            refMembro,
             {
               pontosAcumulados: pontosAtuais + peso,
               atualizadoEm: serverTimestamp(),
@@ -443,17 +448,22 @@ export async function concluirInstancia(
 
         const dadosTarefa = snapTarefa.data();
         const jaConcluida = dadosTarefa.status === 'concluida';
+        const moradiaId: string | undefined = dadosTarefa.moradiaId;
         const peso = Math.max(0, Number(dadosTarefa.pesoDificuldade ?? 1));
         const deveSomarFallback =
-          !pontosCreditados && !jaConcluida && Boolean(uidLogado) && peso > 0;
+          !pontosCreditados &&
+          !jaConcluida &&
+          Boolean(moradiaId) &&
+          Boolean(uidLogado) &&
+          peso > 0;
 
-        let refUsuario = null;
+        let refMembro = null;
         let pontosAtuais = 0;
-        if (deveSomarFallback && uidLogado) {
-          refUsuario = doc(db, 'usuarios', uidLogado);
-          const snapUsuario = await transaction.get(refUsuario);
-          pontosAtuais = snapUsuario.exists()
-            ? Number(snapUsuario.data().pontosAcumulados ?? 0)
+        if (deveSomarFallback && moradiaId && uidLogado) {
+          refMembro = doc(db, 'moradias', moradiaId, 'membros', uidLogado);
+          const snapMembro = await transaction.get(refMembro);
+          pontosAtuais = snapMembro.exists()
+            ? Number(snapMembro.data().pontosAcumulados ?? 0)
             : 0;
         }
 
@@ -463,9 +473,9 @@ export async function concluirInstancia(
           fotos,
         });
 
-        if (deveSomarFallback && refUsuario) {
+        if (deveSomarFallback && refMembro) {
           transaction.set(
-            refUsuario,
+            refMembro,
             {
               pontosAcumulados: pontosAtuais + peso,
               atualizadoEm: serverTimestamp(),

@@ -38,7 +38,6 @@ export default function CadastroScreen() {
           {
             nome: nome.trim(),
             email: email.trim(),
-            pontosAcumulados: 0,
             atualizadoEm: serverTimestamp(),
           },
           { merge: true },

@@ -64,42 +64,49 @@ function AvatarMorador({
   );
 }
 
+const MEDALHA_POR_POSICAO: Record<
+  number,
+  { fundo: string; fita: string; disco: string; borda: string; texto: string }
+> = {
+  1: {
+    fundo: '#FEF3C7',
+    fita: '#E11D48',
+    disco: '#FACC15',
+    borda: '#CA8A04',
+    texto: '#78350F',
+  },
+  2: {
+    fundo: '#F1F5F9',
+    fita: '#2563EB',
+    disco: '#CBD5E1',
+    borda: '#64748B',
+    texto: '#1E293B',
+  },
+  3: {
+    fundo: '#FFEDD5',
+    fita: '#EA580C',
+    disco: '#D97706',
+    borda: '#92400E',
+    texto: '#FFFFFF',
+  },
+};
+
 function MedalhaPodio({ posicao }: { posicao: number }) {
-  if (posicao === 1) {
-    return (
-      <View style={[styles.medalhaCirculo, styles.medalhaOuro]}>
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-          <Path d="M8 2h3l1 5H9L8 2z" fill="#E11D48" />
-          <Path d="M16 2h-3l-1 5h3l1-5z" fill="#E11D48" />
-          <Circle cx="12" cy="14" r="7" fill="#FACC15" stroke="#CA8A04" strokeWidth="1.5" />
-        </Svg>
-        <Text style={[styles.medalhaNumeroSobreposto, { color: '#78350F' }]}>1</Text>
-      </View>
-    );
-  }
+  const cfg = MEDALHA_POR_POSICAO[posicao];
 
-  if (posicao === 2) {
+  if (cfg) {
     return (
-      <View style={[styles.medalhaCirculo, styles.medalhaPrata]}>
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-          <Path d="M8 2h3l1 5H9L8 2z" fill="#2563EB" />
-          <Path d="M16 2h-3l-1 5h3l1-5z" fill="#2563EB" />
-          <Circle cx="12" cy="14" r="7" fill="#CBD5E1" stroke="#64748B" strokeWidth="1.5" />
+      <View style={[styles.medalhaCirculo, { backgroundColor: cfg.fundo }]}>
+        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+          <Path d="M8 1.5h3.2l1 6H9L8 1.5z" fill={cfg.fita} />
+          <Path d="M16 1.5h-3.2l-1 6H15l1-6z" fill={cfg.fita} />
+          <Circle cx="12" cy="14.5" r="8" fill={cfg.disco} stroke={cfg.borda} strokeWidth="1.5" />
         </Svg>
-        <Text style={[styles.medalhaNumeroSobreposto, { color: '#334155' }]}>2</Text>
-      </View>
-    );
-  }
-
-  if (posicao === 3) {
-    return (
-      <View style={[styles.medalhaCirculo, styles.medalhaBronze]}>
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-          <Path d="M8 2h3l1 5H9L8 2z" fill="#EA580C" />
-          <Path d="M16 2h-3l-1 5h3l1-5z" fill="#EA580C" />
-          <Circle cx="12" cy="14" r="7" fill="#D97706" stroke="#92400E" strokeWidth="1.5" />
-        </Svg>
-        <Text style={[styles.medalhaNumeroSobreposto, { color: '#FFFFFF' }]}>3</Text>
+        <View style={styles.medalhaNumeroContainer} pointerEvents="none">
+          <Text style={[styles.medalhaNumeroSobreposto, { color: cfg.texto }]}>
+            {posicao}
+          </Text>
+        </View>
       </View>
     );
   }
@@ -570,26 +577,27 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   medalhaCirculo: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  medalhaOuro: {
-    backgroundColor: '#FEF3C7',
-  },
-  medalhaPrata: {
-    backgroundColor: '#F1F5F9',
-  },
-  medalhaBronze: {
-    backgroundColor: '#FFEDD5',
+  medalhaNumeroContainer: {
+    position: 'absolute',
+    left: 9,
+    top: 12,
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   medalhaNumeroSobreposto: {
-    position: 'absolute',
-    bottom: 5,
     fontFamily: 'Sora-Bold',
-    fontSize: 8.5,
+    fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
+    textAlign: 'center',
   },
   posicaoNumero: {
     fontFamily: 'Sora-Bold',

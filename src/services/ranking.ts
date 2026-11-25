@@ -2,7 +2,8 @@
  * Serviço de Gamificação e Ranking (Firebase).
  *
  * Responsabilidades:
- *  - Buscar os moradores da moradia e seus pontos acumulados (`usuarios/{uid}.pontosAcumulados`).
+ *  - Buscar os moradores da moradia e seus pontos acumulados por casa
+ *    (`moradias/{moradiaId}/membros/{uid}.pontosAcumulados`).
  *  - Calcular colocação no pódio, progresso, cumprimento e sequência de ciclos (streak).
  */
 
@@ -151,8 +152,8 @@ export async function carregarRankingMoradia(
         membroDados.fotoUrl ||
         undefined;
 
-      const pontos = Math.max(0, Number(usuarioDados?.pontosAcumulados ?? 0));
-      const melhorSalva = Number(usuarioDados?.melhorPosicao ?? 0);
+      const pontos = Math.max(0, Number(membroDados.pontosAcumulados ?? 0));
+      const melhorSalva = Number(membroDados.melhorPosicao ?? 0);
 
       const minhasInstancias = instancias.filter((i) => i.usuarioId === uid);
       const totalTarefas = minhasInstancias.length;
@@ -218,7 +219,7 @@ export async function carregarRankingMoradia(
     const salvo = baseMoradores.find((m) => m.uid === uidAtual)?.melhorSalva ?? 0;
     if (salvo === 0 || usuarioAtual.posicao < salvo) {
       setDoc(
-        doc(db, 'usuarios', uidAtual),
+        doc(db, 'moradias', moradiaId, 'membros', uidAtual),
         { melhorPosicao: usuarioAtual.posicao },
         { merge: true },
       ).catch(() => {});
